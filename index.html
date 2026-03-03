@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Curtin University 3D Campus Map</title>
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Cesium.js"></script>
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Search UI -->
+  <div id="ui-overlay">
+    <h2>🏛️ Curtin Bentley Campus</h2>
+    <input type="text" id="searchInput" placeholder="Search Building (e.g. 109, 206)..." />
+    <button onclick="searchBuilding()">Search</button>
+  </div>
+
+  <!-- Info Panel -->
+  <div id="info-panel">
+    <button class="close-btn" onclick="closeInfoPanel()">×</button>
+    <div id="info-content"></div>
+  </div>
+
+  <!-- Cesium Viewer Container -->
+  <div id="cesiumContainer"></div>
+  
+  <script src="script.js"></script>
+</body>
+</html>
