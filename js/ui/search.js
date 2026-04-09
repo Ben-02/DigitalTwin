@@ -64,7 +64,6 @@ export function searchBuilding() {
                 flyToBuilding(lat, lon, 15);
                 showBuildingInfo(entity);
                 
-                // ADD THIS - Draw route to the building
                 const buildingNum = props['addr:housenumber']?._value || 'Unknown';
                 const buildingName = props['addr:housename']?._value || props.name?._value || '';
                 const fullName = buildingNum !== 'Unknown' ? `Building ${buildingNum}` : buildingName;

@@ -6,7 +6,6 @@ let pathwayGraph = null;
 export function buildPathwayGraph() {
     console.log("🔨 Building pathway graph...");
     
-    // CHECK: Make sure we have pathway data
     if (!pathwayData || pathwayData.length === 0) {
         console.error("❌ No pathway data available! Cannot build graph.");
         return null;
@@ -178,7 +177,7 @@ export function findPath(startNode, endNode) {
         // Get current node
         const currentNode = Array.from(pathwayGraph.nodes.values()).find(n => n.id === current);
         
-        // Check if we reached the goal
+        // Check if reached the goal
         if (current === endNode.id) {
             console.log("✅ Path found!");
             return reconstructPath(cameFrom, current);
@@ -186,7 +185,7 @@ export function findPath(startNode, endNode) {
         
         openSet.delete(current);
         
-        // Check all neighbors
+        // Check all neighbours
         currentNode.connections.forEach(connection => {
             const neighborId = connection.nodeId;
             const tentativeGScore = gScore.get(current) + connection.distance;

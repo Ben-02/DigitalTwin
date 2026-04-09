@@ -23,7 +23,7 @@ async function initializeApp() {
         const pathways = analyzePathwayData();
         console.log(`Pathways analyzed: ${pathways.length}`);
         
-        // THEN build the graph
+        // then build the graph
         const graph = buildPathwayGraph();
         if (!graph) {
             console.error("⚠️ Failed to build pathway graph - pathfinding will not work");

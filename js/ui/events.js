@@ -14,7 +14,6 @@ export function enableBuildingClick() {
     buildingClickHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
     
     buildingClickHandler.setInputAction(function(click) {
-        // Check the global flag
         if (!window.buildingClickEnabled) {
             console.log("Building clicks temporarily disabled");
             return;
