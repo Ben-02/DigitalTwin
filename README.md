@@ -1,4 +1,4 @@
-# Curtin University 3D Campus Navigation System
+# Curtin University 3D Campus Navigation System (Status: In development)
 
 A web-based digital twin navigation application for Curtin University Bentley Campus. This system enables students, staff, and visitors to explore the campus in 3D and navigate between buildings using optimized pathways.
 
