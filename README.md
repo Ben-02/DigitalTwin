@@ -62,12 +62,6 @@ This application was developed as part of the ENGR6009/6010 Professional Enginee
 
 ---
 
-## Acknowledgments
-
-This project was developed with supervision and guidance from supervisor at Curtin University. The application utilizes CesiumJS for 3D visualization and OpenStreetMap data for campus mapping information.
-
----
-
 ## License
 
 This project is developed for academic purposes as part of a final year engineering research project at Curtin University.
