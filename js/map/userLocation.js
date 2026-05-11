@@ -389,6 +389,20 @@ export function updateUserLocation() {
     });
 }
 
+export function updatePositionDuringNavigation(lat, lon) {
+    userLocation = {
+        ...userLocation,
+        latitude: lat,
+        longitude: lon
+    };
+    
+    if (userLocationMarker) {
+        userLocationMarker.position = new Cesium.ConstantPositionProperty(
+            Cesium.Cartesian3.fromDegrees(lon, lat, 2)
+        );
+    }
+}
+
 window.enableManualLocationSetting = enableManualLocationSetting;
 window.updateUserLocation = updateUserLocation;
 window.cancelManualLocationMode = cancelManualLocationMode;

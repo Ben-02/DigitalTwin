@@ -43,6 +43,21 @@
   <div id="info-content"></div>
 </div>
 
+<!-- Navigation Instruction Banner (shown during trip) -->
+<div id="nav-instruction-banner">
+    <div id="nav-main-instruction">Starting navigation...</div>
+    <div id="nav-sub-instruction"></div>
+</div>
+
+<!-- Navigation Bottom Bar (shown during trip) -->
+<div id="nav-bottom-bar">
+    <div id="nav-info">
+        <span id="nav-remaining-distance">0m</span>
+        <span id="nav-remaining-time">~0 mins</span>
+    </div>
+    <button onclick="stopTrip()">■ Stop</button>
+</div>
+
 <!-- Main Script -->
 <script type="module" src="js/main.js"></script>
 <script>

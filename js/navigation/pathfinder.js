@@ -3,6 +3,12 @@ import { userLocation } from '../map/userLocation.js';
 import { setLastDestination, clearLastDestination } from '../map/userLocation.js';
 import { findNearestNode, findPath, getPathwayGraph } from './pathGraph.js';
 
+let currentRoutePath = [];
+let currentDestination = { lat: null, lon: null, name: null };
+
+export function getCurrentRoutePath() { return currentRoutePath; }
+export function getCurrentDestination() { return currentDestination; }
+
 let currentRoute = null;
 
 // Calculate distance between two points
@@ -97,6 +103,16 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
     // Add end point (target building)
     pathCoordinates.push(targetLon, targetLat);
     
+    // Store path for Start Trip feature
+    currentRoutePath = [];
+    currentRoutePath.push({ lat: userLocation.latitude, lon: userLocation.longitude });
+    path.forEach(nodeId => {
+        const node = Array.from(graph.nodes.values()).find(n => n.id === nodeId);
+        if (node) currentRoutePath.push({ lat: node.latitude, lon: node.longitude });
+    });
+    currentRoutePath.push({ lat: targetLat, lon: targetLon });
+    currentDestination = { lat: targetLat, lon: targetLon, name: targetName };
+
     // Draw the route
     currentRoute = viewer.entities.add({
         name: `Route to ${targetName}`,
@@ -177,7 +193,16 @@ function showRouteInfo(distance, targetName) {
         <p><strong>Distance:</strong> ${distance.toFixed(0)} meters</p>
         <p><strong>Walking Time:</strong> ~${walkingTime} minute${walkingTime > 1 ? 's' : ''}</p>
         <p><em>Blue line follows campus pathways.</em></p>
-        <button onclick="clearRoute()" style="margin-top: 10px; padding: 8px 16px; background: #ff6600; color: white; border: none; border-radius: 4px; cursor: pointer;">Clear Route</button>
+        <div style="display:flex; gap:8px; margin-top:12px;">
+            <button onclick="window.startTripFromRoute()" 
+                style="flex:1; padding:11px; background:#27ae60; color:white; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer;">
+                ▶ Start Trip
+            </button>
+            <button onclick="clearRoute()" 
+                style="flex:1; padding:11px; background:#ff6600; color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;">
+                Clear
+            </button>
+        </div>
     `;
     
     infoPanel.style.display = 'block';
@@ -193,3 +218,13 @@ export function clearRoute() {
 }
 
 window.clearRoute = clearRoute;
+window.startTripFromRoute = function() {
+    import('./tripMode.js').then(({ startTrip }) => {
+        startTrip(
+            currentRoutePath,
+            currentDestination.name,
+            currentDestination.lat,
+            currentDestination.lon
+        );
+    });
+};

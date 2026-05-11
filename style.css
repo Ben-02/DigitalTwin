@@ -244,4 +244,82 @@ html, body, #cesiumContainer {
   #setLocationBtn, #refreshGpsBtn {
     white-space: nowrap;
   }
+
+  /* ===== NAVIGATION MODE ===== */
+#nav-instruction-banner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 2000;
+    background: #2c3e50;
+    color: white;
+    padding: 16px 20px;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+#nav-main-instruction {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+#nav-sub-instruction {
+    font-size: 13px;
+    opacity: 0.75;
+    margin-top: 4px;
+}
+
+#nav-bottom-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 2000;
+    background: #2c3e50;
+    color: white;
+    padding: 16px 20px;
+    display: none;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+}
+
+#nav-info {
+    display: flex;
+    flex-direction: column;
+}
+
+#nav-remaining-distance {
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+#nav-remaining-time {
+    font-size: 13px;
+    opacity: 0.75;
+    margin-top: 4px;
+}
+
+#nav-bottom-bar button {
+    background: #e74c3c !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 12px 24px !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    cursor: pointer;
+    width: auto !important;
+}
+
+#nav-bottom-bar button:hover {
+    background: #c0392b !important;
+}
+
 }
