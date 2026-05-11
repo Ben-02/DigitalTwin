@@ -1,131 +1,243 @@
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
 html, body, #cesiumContainer {
   width: 100%;
   height: 100%;
   margin: 0;
   padding: 0;
   overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
+/* ===== SEARCH PANEL ===== */
 #ui-overlay {
   position: absolute;
-  top: 20px;
-  left: 20px;
+  top: 10px;
+  left: 10px;
+  right: 10px;
   z-index: 1000;
-  background: rgba(255, 255, 255, 0.95);
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-  min-width: 280px;
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  overflow: hidden;
 }
 
-#ui-overlay h2 {
-  margin: 0 0 15px 0;
-  font-size: 18px;
+#ui-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 15px;
+  cursor: pointer;
+  user-select: none;
+}
+
+#header-title {
+  font-size: 16px;
+  font-weight: 700;
   color: #333;
 }
 
+#toggle-btn {
+  background: none !important;
+  border: none !important;
+  font-size: 14px !important;
+  color: #666 !important;
+  cursor: pointer;
+  padding: 4px 8px !important;
+  width: auto !important;
+  min-width: 32px;
+}
+
+#ui-content {
+  padding: 0 15px 15px;
+  border-top: 1px solid #eee;
+}
+
+/* ===== SEARCH ROW ===== */
+#search-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 #searchInput {
+  flex: 1;
   padding: 10px 12px;
   border: 2px solid #ddd;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 14px;
-  width: 100%;
-  box-sizing: border-box;
-  margin-bottom: 10px;
-  transition: border-color 0.3s;
+  outline: none;
+  transition: border-color 0.2s;
 }
 
 #searchInput:focus {
-  outline: none;
   border-color: #ff6600;
 }
 
-#ui-overlay button {
-  padding: 10px 20px;
-  background: #ff6600;
-  color: white;
-  border: none;
-  border-radius: 6px;
+#searchButton {
+  padding: 10px 16px !important;
+  background: #ff6600 !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  width: 100%;
-  transition: background 0.3s;
+  white-space: nowrap;
+  width: auto !important;
 }
 
-#ui-overlay button:hover {
-  background: #cc5200;
+#searchButton:hover {
+  background: #cc5200 !important;
 }
 
-#ui-overlay button:active {
-  transform: translateY(1px);
+/* ===== LOCATION SECTION ===== */
+#location-section {
+  margin-top: 12px;
 }
 
-/* Info Panel */
+#location-label {
+  font-size: 12px;
+  color: #666;
+  margin: 0 0 8px 0;
+}
+
+#location-buttons-container {
+  display: flex;
+  gap: 8px;
+}
+
+#setLocationBtn {
+  flex: 1;
+  padding: 9px 12px !important;
+  background: #28a745 !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer;
+  width: auto !important;
+}
+
+#refreshGpsBtn {
+  flex: 1;
+  padding: 9px 12px !important;
+  background: #6c757d !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer;
+  width: auto !important;
+}
+
+/* ===== INFO PANEL (BOTTOM SHEET ON MOBILE) ===== */
 #info-panel {
   position: absolute;
-  top: 20px;
-  right: 20px;
+  bottom: 0;
+  left: 0;
+  right: 0;
   z-index: 1000;
-  background: rgba(255, 255, 255, 0.95);
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-  min-width: 280px;
-  max-width: 350px;
+  background: white;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
+  padding: 0 20px 40px;
   display: none;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+
+#info-handle {
+  width: 40px;
+  height: 4px;
+  background: #ddd;
+  border-radius: 2px;
+  margin: 12px auto 8px;
 }
 
 #info-panel h3 {
-  margin: 0 0 15px 0;
+  margin: 10px 0 15px 0;
   color: #ff6600;
-  font-size: 20px;
-  padding-right: 30px;
+  font-size: 18px;
+  padding-right: 35px;
 }
 
 #info-panel p {
-  margin: 10px 0;
+  margin: 8px 0;
   font-size: 14px;
   line-height: 1.6;
   color: #333;
 }
 
 #info-panel strong {
-  color: #666;
+  color: #555;
+}
+
+/* Clear route button inside info panel */
+#info-panel button {
+  margin-top: 10px;
+  padding: 10px 20px;
+  background: #ff6600;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+}
+
+#info-panel button:hover {
+  background: #cc5200;
 }
 
 .close-btn {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  background: none;
-  border: none;
-  font-size: 28px;
+  position: absolute !important;
+  top: 15px !important;
+  right: 15px !important;
+  background: none !important;
+  border: none !important;
+  font-size: 24px !important;
   cursor: pointer;
-  color: #999;
-  padding: 0;
-  width: 30px;
-  height: 30px;
-  line-height: 28px;
-  transition: color 0.3s;
+  color: #999 !important;
+  padding: 0 !important;
+  width: 30px !important;
+  height: 30px !important;
+  line-height: 28px !important;
+  font-weight: 400 !important;
 }
 
 .close-btn:hover {
-  color: #ff6600;
+  color: #ff6600 !important;
 }
 
-/* Responsive design */
-@media (max-width: 768px) {
-  #ui-overlay, #info-panel {
-    min-width: auto;
-    width: calc(100% - 40px);
+/* ===== DESKTOP OVERRIDES ===== */
+@media (min-width: 768px) {
+  #ui-overlay {
+    top: 20px;
     left: 20px;
-    right: 20px;
+    right: auto;
+    width: 320px;
   }
-  
+
   #info-panel {
-    top: auto;
-    bottom: 20px;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    bottom: auto;
+    left: auto;
+    width: 320px;
+    border-radius: 12px;
+    max-height: 80vh;
+    padding: 20px;
+  }
+
+  #info-handle {
+    display: none;
   }
 }

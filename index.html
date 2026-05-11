@@ -2,43 +2,57 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Curtin University 3D Campus Map</title>
   <script src="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Cesium.js"></script>
   <link href="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<!-- Search UI -->
+
+<!-- Cesium Viewer -->
+<div id="cesiumContainer"></div>
+
+<!-- Search Panel -->
 <div id="ui-overlay">
-  <h2>🏛️ Curtin Bentley Campus</h2>
-  <input type="text" id="searchInput" placeholder="Search Building (e.g. 109, 206)..." />
-  <button id="searchButton">Search</button>
-  
-  <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
-    <!-- Dynamic location buttons container -->
-    <div id="location-buttons-container">
-      <p style="font-size: 12px; color: #666; margin: 0 0 8px 0;">📍 Location: <span style="color: #007bff; font-weight: bold;">GPS</span></p>
-      <button onclick="enableManualLocationSetting()" style="width: 100%; margin-bottom: 5px; padding: 6px 12px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">
-        📍 Set My Location
-      </button>
-      <button onclick="updateUserLocation()" style="width: 100%; padding: 6px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">
-        🔄 Refresh GPS
-      </button>
+  <div id="ui-header" onclick="togglePanel()">
+    <span id="header-title">🏛️ Curtin Bentley Campus</span>
+    <button id="toggle-btn">▼</button>
+  </div>
+
+  <div id="ui-content">
+    <div id="search-row">
+      <input type="text" id="searchInput" placeholder="Search building (e.g. 109, 206)..." />
+      <button id="searchButton">Search</button>
+    </div>
+
+    <div id="location-section">
+      <p id="location-label">📍 Location: <span id="location-type-text" style="color: #007bff; font-weight: bold;">GPS</span></p>
+      <div id="location-buttons-container">
+        <button id="setLocationBtn" onclick="enableManualLocationSetting()">📍 Set My Location</button>
+        <button id="refreshGpsBtn" onclick="updateUserLocation()">🔄 Refresh GPS</button>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- Info Panel -->
+<!-- Info Panel (Bottom Sheet on Mobile) -->
 <div id="info-panel">
+  <div id="info-handle"></div>
   <button class="close-btn" id="closeButton">×</button>
   <div id="info-content"></div>
 </div>
 
-<!-- Cesium Viewer Container -->
-<div id="cesiumContainer"></div>
-
-<!-- Main Script (ES6 Module) -->
+<!-- Main Script -->
 <script type="module" src="js/main.js"></script>
+<script>
+  function togglePanel() {
+    const content = document.getElementById('ui-content');
+    const btn = document.getElementById('toggle-btn');
+    const isHidden = content.style.display === 'none';
+    content.style.display = isHidden ? 'block' : 'none';
+    btn.textContent = isHidden ? '▼' : '▲';
+  }
+</script>
 </body>
 </html>
