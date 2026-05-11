@@ -1,4 +1,4 @@
-# Curtin University 3D Campus Navigation System
+# Curtin University 3D Campus Navigation System (Status: In development)
 
 A web-based digital twin navigation application for Curtin University Bentley Campus. This system enables students, staff, and visitors to explore the campus in 3D and navigate between buildings using optimized pathways.
 
@@ -59,12 +59,6 @@ This application was developed as part of the ENGR6009/6010 Professional Enginee
 - A* pathfinding for optimal route calculation
 - Haversine formula for coordinate distance calculation
 - Graph-based navigation system
-
----
-
-## Acknowledgments
-
-This project was developed with supervision and guidance from supervisor at Curtin University. The application utilizes CesiumJS for 3D visualization and OpenStreetMap data for campus mapping information.
 
 ---
 
