@@ -240,4 +240,8 @@ html, body, #cesiumContainer {
   #info-handle {
     display: none;
   }
+  
+  #setLocationBtn, #refreshGpsBtn {
+    white-space: nowrap;
+  }
 }
