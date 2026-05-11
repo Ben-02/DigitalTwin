@@ -5,6 +5,7 @@ export let userLocationMarker = null;
 let isManualLocation = false;
 let gpsLocation = null;
 let manualLocationHandler = null;
+let locationPermissionDenied = false;
 
 // Store last destination for route redrawing
 let lastDestination = null;
@@ -36,7 +37,17 @@ export function getUserLocation() {
                 },
                 (error) => {
                     console.error("❌ Error getting location:", error.message);
-                    
+
+                    if (error.code === 1) {
+                        // User denied location access
+                        locationPermissionDenied = true;
+                        console.warn("⚠️ Location permission denied by user");
+                        updateLocationLabel('denied');
+                        resolve(null);
+                        return;
+                    }
+
+                    // Other errors (timeout, unavailable) - use default campus location
                     userLocation = {
                         latitude: -32.0063,
                         longitude: 115.8945,
@@ -110,6 +121,42 @@ function showUserLocationMarker() {
 }
 
 export function enableManualLocationSetting() {
+    // If permission was denied, try to re-request GPS first
+    if (locationPermissionDenied) {
+        console.log("🔄 Re-requesting location permission...");
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                // Permission granted!
+                locationPermissionDenied = false;
+                userLocation = {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    accuracy: position.coords.accuracy
+                };
+                gpsLocation = { ...userLocation };
+                isManualLocation = false;
+                showUserLocationMarker();
+                updateLocationLabel('gps');
+                updateLocationButtons();
+                console.log("✅ Location permission granted!");
+            },
+            (error) => {
+                if (error.code === 1) {
+                    // Still denied - fall back to manual mode
+                    console.warn("⚠️ Still denied, entering manual mode");
+                    alert('Location is blocked in your browser settings.\nYou can set your location manually by clicking on the map.');
+                    enterManualClickMode();
+                }
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+        return;
+    }
+
+    enterManualClickMode();
+}
+
+function enterManualClickMode() {
     console.log("🖱️ Manual location mode enabled - click on the map to set your position");
     
     window.buildingClickEnabled = false;
@@ -120,7 +167,6 @@ export function enableManualLocationSetting() {
     manualLocationHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
     
     manualLocationHandler.setInputAction(function(click) {
-        // FIX 1: Use pickEllipsoid instead of pickPosition - works on terrain/ground
         const ellipsoid = viewer.scene.globe.ellipsoid;
         const cartesian = viewer.camera.pickEllipsoid(click.position, ellipsoid);
         
@@ -150,13 +196,11 @@ export function enableManualLocationSetting() {
             window.buildingClickEnabled = true;
             console.log("✅ Building clicks re-enabled");
             
+            updateLocationLabel('manual');
             updateLocationButtons();
             
-            // FIX 2: Redraw route if there's a destination
             if (lastDestination) {
                 console.log("🔄 Redrawing route from new location...");
-                
-                // Import and call drawRouteTo
                 import('../navigation/pathfinder.js').then(({ drawRouteTo }) => {
                     drawRouteTo(
                         lastDestination.latitude,
@@ -237,6 +281,22 @@ export function clearLastDestination() {
     console.log("🗑️ Destination cleared");
 }
 
+function updateLocationLabel(type) {
+    const span = document.getElementById('location-type-text');
+    if (!span) return;
+
+    if (type === 'gps') {
+        span.textContent = 'GPS';
+        span.style.color = '#007bff';
+    } else if (type === 'manual') {
+        span.textContent = 'Manual';
+        span.style.color = '#28a745';
+    } else if (type === 'denied') {
+        span.textContent = 'Unavailable';
+        span.style.color = '#dc3545';
+    }
+}
+
 function showManualLocationOverlay() {
     let overlay = document.getElementById('manual-location-overlay');
     
@@ -276,27 +336,33 @@ function hideManualLocationOverlay() {
 function updateLocationButtons() {
     const container = document.getElementById('location-buttons-container');
     if (!container) return;
-    
-    if (isManualLocation) {
+
+    if (locationPermissionDenied) {
         container.innerHTML = `
-            <p style="font-size: 12px; color: #666; margin: 0 0 8px 0;">📍 Location: <span style="color: #28a745; font-weight: bold;">Manual</span></p>
-            <button onclick="revertToGPSLocation()" style="width: 100%; margin-bottom: 5px; padding: 6px 12px; background: #ffc107; color: #000; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500;">
-                ↩️ Undo (Use GPS)
+            <button onclick="enableManualLocationSetting()" 
+                style="flex:1; padding:9px 12px; background:#dc3545; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+                📍 Enable Location
             </button>
-            <button onclick="enableManualLocationSetting()" style="width: 100%; margin-bottom: 5px; padding: 6px 12px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">
-                📍 Set New Location
+        `;
+    } else if (isManualLocation) {
+        container.innerHTML = `
+            <button onclick="revertToGPSLocation()" 
+                style="flex:1; padding:9px 12px; background:#ffc107; color:#000; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+                ↩️ Use GPS
             </button>
-            <button onclick="updateUserLocation()" style="width: 100%; padding: 6px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">
-                🔄 Refresh GPS
+            <button onclick="enableManualLocationSetting()" 
+                style="flex:1; padding:9px 12px; background:#28a745; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+                📍 Set New
             </button>
         `;
     } else {
         container.innerHTML = `
-            <p style="font-size: 12px; color: #666; margin: 0 0 8px 0;">📍 Location: <span style="color: #007bff; font-weight: bold;">GPS</span></p>
-            <button onclick="enableManualLocationSetting()" style="width: 100%; margin-bottom: 5px; padding: 6px 12px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">
+            <button onclick="enableManualLocationSetting()" 
+                style="flex:1; padding:9px 12px; background:#28a745; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
                 📍 Set My Location
             </button>
-            <button onclick="updateUserLocation()" style="width: 100%; padding: 6px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">
+            <button onclick="updateUserLocation()" 
+                style="flex:1; padding:9px 12px; background:#6c757d; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
                 🔄 Refresh GPS
             </button>
         `;
