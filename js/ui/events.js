@@ -1,13 +1,12 @@
 import { viewer } from '../map/viewer.js';
 import { highlightBuilding, removeHighlight } from '../map/buildings.js';
 import { getBuildingMetadata } from '../data/metadata.js';
-import { showBuildingInfo, showGenericBuildingInfo, closeInfoPanel } from './infoPanel.js';
+import { showBuildingInfoWithDirections, showGenericBuildingInfo, closeInfoPanel } from './infoPanel.js'; // ← Updated import
 import { flyToBuilding } from '../map/camera.js';
-import { drawRouteTo } from '../navigation/pathfinder.js';
+// ← Removed drawRouteTo import
 
 let buildingClickHandler = null;
 
-// Make this a global variable that userLocation.js can access
 window.buildingClickEnabled = true;
 
 export function enableBuildingClick() {
@@ -39,18 +38,19 @@ export function enableBuildingClick() {
             
             if (metadataEntity) {
                 console.log("✅ Found metadata for this building!");
-                showBuildingInfo(metadataEntity);
                 
                 const buildingNum = metadataEntity.properties['addr:housenumber']?._value || 'Unknown';
                 const buildingName = metadataEntity.properties['addr:housename']?._value || 
                                     metadataEntity.properties.name?._value || '';
                 const fullName = buildingNum !== 'Unknown' ? `Building ${buildingNum}` : buildingName;
-                drawRouteTo(lat, lon, fullName);
+                
+                // Show info + Get Directions button (no auto-route!)
+                showBuildingInfoWithDirections(metadataEntity, lat, lon, fullName);
                 
             } else {
                 console.log("⚠️ No metadata available for element ID:", elementId);
+                // showGenericBuildingInfo already has Get Directions button
                 showGenericBuildingInfo(elementId, lat, lon, height);
-                drawRouteTo(lat, lon, `Building (ID: ${elementId})`);
             }
             
             flyToBuilding(lat, lon, height);

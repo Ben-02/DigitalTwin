@@ -408,3 +408,15 @@ window.enableManualLocationSetting = enableManualLocationSetting;
 window.updateUserLocation = updateUserLocation;
 window.cancelManualLocationMode = cancelManualLocationMode;
 window.revertToGPSLocation = revertToGPSLocation;
+
+export function isInsideCampus(lat, lon) {
+    // Curtin Bentley campus bounding box
+    const bounds = {
+        minLat: -32.013,
+        maxLat: -31.999,
+        minLon: 115.887,
+        maxLon: 115.902
+    };
+    return lat >= bounds.minLat && lat <= bounds.maxLat &&
+           lon >= bounds.minLon && lon <= bounds.maxLon;
+}

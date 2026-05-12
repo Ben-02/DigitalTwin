@@ -1,9 +1,8 @@
 import { buildingMetadataMap } from '../data/metadata.js';
-import { showBuildingInfo } from './infoPanel.js';
+import { showBuildingInfoWithDirections } from './infoPanel.js';
 import { flyToBuilding } from '../map/camera.js';
 import { viewer } from '../map/viewer.js';
 import { removeHighlight } from '../map/buildings.js';
-import { drawRouteTo } from '../navigation/pathfinder.js';
 
 export function searchBuilding() {
     const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
@@ -14,7 +13,6 @@ export function searchBuilding() {
     }
     
     console.log(`🔍 Searching for: "${searchTerm}"`);
-    
     removeHighlight();
     
     let found = false;
@@ -61,13 +59,15 @@ export function searchBuilding() {
             }
             
             if (lat && lon) {
-                flyToBuilding(lat, lon, 15);
-                showBuildingInfo(entity);
-                
                 const buildingNum = props['addr:housenumber']?._value || 'Unknown';
                 const buildingName = props['addr:housename']?._value || props.name?._value || '';
                 const fullName = buildingNum !== 'Unknown' ? `Building ${buildingNum}` : buildingName;
-                drawRouteTo(lat, lon, fullName);
+
+                // Step 1: Zoom to building
+                flyToBuilding(lat, lon, 15);
+
+                // Step 2: Show info with Get Directions button (NO auto-route!)
+                showBuildingInfoWithDirections(entity, lat, lon, fullName);
                 
                 setTimeout(() => {
                     tryHighlightBuildingAtPosition(lat, lon);
@@ -90,16 +90,13 @@ function tryHighlightBuildingAtPosition(lat, lon) {
     
     if (screenPosition) {
         const picked = viewer.scene.pick(screenPosition);
-        
         if (Cesium.defined(picked) && picked instanceof Cesium.Cesium3DTileFeature) {
             import('../map/buildings.js').then(({ highlightBuilding }) => {
                 highlightBuilding(picked);
             });
-            
             console.log("✅ Building highlighted after search");
         }
     }
 }
 
-// Make searchBuilding available globally for HTML onclick
 window.searchBuilding = searchBuilding;

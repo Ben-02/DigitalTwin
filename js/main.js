@@ -1,5 +1,5 @@
 import { initializeViewer, viewer } from './map/viewer.js';
-import { loadOSMBuildings, removeHighlight} from './map/buildings.js';
+import { loadOSMBuildings, removeHighlight } from './map/buildings.js';
 import { drawCampusBoundary } from './map/boundary.js';
 import { loadCampusMetadata } from './data/metadata.js';
 import { analyzePathwayData } from './data/pathways.js';
@@ -9,6 +9,7 @@ import { enableBuildingClick } from './ui/events.js';
 import { searchBuilding } from './ui/search.js';
 import { flyToCampus } from './map/camera.js';
 import { closeInfoPanel } from './ui/infoPanel.js';
+import { drawRouteTo } from './navigation/pathfinder.js';
 
 async function initializeApp() {
     try {

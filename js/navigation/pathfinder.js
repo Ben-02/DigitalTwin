@@ -189,27 +189,43 @@ function drawDirectRoute(targetLat, targetLon, targetName) {
 function showRouteInfo(distance, targetName) {
     const infoPanel = document.getElementById('info-panel');
     const infoContent = document.getElementById('info-content');
-    
     const walkingTime = Math.ceil(distance / 80);
-    
-    infoContent.innerHTML = `
-        <h3>🗺️ Route to ${targetName}</h3>
-        <p><strong>Distance:</strong> ${distance.toFixed(0)} meters</p>
-        <p><strong>Walking Time:</strong> ~${walkingTime} minute${walkingTime > 1 ? 's' : ''}</p>
-        <p><em>Blue line follows campus pathways.</em></p>
-        <div style="display:flex; gap:8px; margin-top:12px;">
-            <button id="startTripBtn" onclick="window.startTripFromRoute()" " 
+
+    // Check if user is inside campus
+    import('../map/userLocation.js').then(({ userLocation, isInsideCampus }) => {
+        const onCampus = userLocation && isInsideCampus(
+            userLocation.latitude,
+            userLocation.longitude
+        );
+
+        const startTripButton = onCampus
+            ? `<button id="startTripBtn" onclick="window.startTripFromRoute()"
                 style="flex:1; padding:11px; background:#27ae60; color:white; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer;">
                 ▶ Start Trip
-            </button>
-            <button onclick="clearRoute()" 
-                style="flex:1; padding:11px; background:#ff6600; color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;">
-                Clear
-            </button>
-        </div>
-    `;
-    
-    infoPanel.style.display = 'block';
+               </button>`
+            : `<button disabled
+                style="flex:1; padding:11px; background:#aaa; color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:not-allowed;"
+                title="You must be on campus to start navigation">
+                📍 Not on campus
+               </button>`;
+
+        infoContent.innerHTML = `
+            <h3>🗺️ Route to ${targetName}</h3>
+            <p><strong>Distance:</strong> ${distance.toFixed(0)} meters</p>
+            <p><strong>Walking Time:</strong> ~${walkingTime} minute${walkingTime > 1 ? 's' : ''}</p>
+            <p><em>Blue line follows campus pathways.</em></p>
+            ${!onCampus ? `<p style="color:#e74c3c; font-size:12px;">⚠️ You must be on Curtin Bentley campus to use navigation.</p>` : ''}
+            <div style="display:flex; gap:8px; margin-top:12px;">
+                ${startTripButton}
+                <button onclick="clearRoute()"
+                    style="flex:1; padding:11px; background:#ff6600; color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;">
+                    Clear
+                </button>
+            </div>
+        `;
+
+        infoPanel.style.display = 'block';
+    });
 }
 
 export function clearRoute() {
@@ -249,5 +265,63 @@ window.startTripFromRoute = function() {
                 }
             });
         });
+    });
+};
+
+window.getDirections = function(lat, lon, name) {
+    // Capture btn reference immediately
+    const btn = document.getElementById('getDirectionsBtn');
+    if (btn) {
+        btn.textContent = '⏳ Getting directions...';
+        btn.style.background = '#95a5a6';
+        btn.disabled = true;
+    }
+
+    import('../map/userLocation.js').then(({ userLocation: currentLocation, isInsideCampus }) => {
+        // Re-query btn inside callback in case DOM changed
+        const currentBtn = document.getElementById('getDirectionsBtn');
+
+        if (!currentLocation) {
+            alert('Location not available. Please enable location services.');
+            if (currentBtn) {
+                currentBtn.textContent = '🗺️ Get Directions';
+                currentBtn.style.background = '#3498db';
+                currentBtn.disabled = false;
+            }
+            return;
+        }
+
+        if (!isInsideCampus(currentLocation.latitude, currentLocation.longitude)) {
+            if (currentBtn) {
+                // Remove existing warning to prevent stacking
+                const existingWarning = document.getElementById('campus-warning');
+                if (existingWarning) existingWarning.remove();
+
+                currentBtn.insertAdjacentHTML('beforebegin', `
+                    <p id="campus-warning" style="color:#e74c3c; font-size:12px; margin-bottom:8px;">
+                        ⚠️ You must be on Curtin Bentley campus to get directions.
+                    </p>
+                `);
+                currentBtn.textContent = '🗺️ Get Directions';
+                currentBtn.style.background = '#3498db';
+                currentBtn.disabled = false;
+            }
+            return;
+        }
+
+        // User is on campus - draw route!
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                drawRouteTo(lat, lon, name);
+            });
+        });
+    }).catch(err => {
+        console.error('getDirections error:', err);
+        const currentBtn = document.getElementById('getDirectionsBtn');
+        if (currentBtn) {
+            currentBtn.textContent = '🗺️ Get Directions';
+            currentBtn.style.background = '#3498db';
+            currentBtn.disabled = false;
+        }
     });
 };
