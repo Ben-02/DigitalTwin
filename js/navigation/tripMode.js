@@ -77,8 +77,19 @@ export function stopTrip() {
     }
 
     // Unlock camera so user can pan freely again
-    viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
-
+    viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(
+            previousLon || 115.8945,
+            previousLat || -32.0063,
+            500
+        ),
+        orientation: {
+            heading: 0,
+            pitch: Cesium.Math.toRadians(-45),
+            roll: 0
+        },
+        duration: 1.5
+    });
     // Hide navigation UI
     hideNavigationUI();
 
@@ -101,19 +112,23 @@ function onPositionUpdate(position) {
     // Smooth position to reduce GPS jitter
     const { lat, lon } = smoothPosition(rawLat, rawLon);
 
+    // Calculate distance moved since last update
+    const moved = previousLat !== null
+        ? haversineDistance(previousLat, previousLon, lat, lon)
+        : 0;
+
     // Update heading only if moved 3+ meters
-    if (previousLat !== null) {
-        const moved = haversineDistance(previousLat, previousLon, lat, lon);
-        if (moved > 3) {
-            currentHeading = calculateBearing(previousLat, previousLon, lat, lon);
-        }
+    if (moved > 3) {
+        currentHeading = calculateBearing(previousLat, previousLon, lat, lon);
     }
 
     // Update user marker on map
     updatePositionDuringNavigation(lat, lon);
 
-    // Follow user with camera
-    zoomToUser(lat, lon, currentHeading);
+    // Only update camera if moved 5+ meters (reduces unnecessary re-renders)
+    if (moved > 5 || previousLat === null) {
+        zoomToUser(lat, lon, currentHeading);
+    }
 
     // Update instruction banner and distance bar
     updateNavigationUI(lat, lon);
@@ -136,17 +151,16 @@ function onPositionError(error) {
     console.error('GPS error during navigation:', error.message);
 }
 
-// ===== CAMERA FOLLOW =====
 function zoomToUser(lat, lon, heading) {
-    const position = Cesium.Cartesian3.fromDegrees(lon, lat, 0);
-    viewer.camera.lookAt(
-        position,
-        new Cesium.HeadingPitchRange(
-            Cesium.Math.toRadians(heading),
-            Cesium.Math.toRadians(-50),
-            150
-        )
-    );
+    viewer.camera.setView({
+        destination: Cesium.Cartesian3.fromDegrees(lon, lat, 150),
+        orientation: {
+            heading: Cesium.Math.toRadians(heading),
+            pitch: Cesium.Math.toRadians(-50),
+            roll: 0
+        }
+    });
+    viewer.scene.requestRender();
 }
 
 // ===== GPS SMOOTHING =====
