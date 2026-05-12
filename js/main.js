@@ -1,7 +1,7 @@
 import { initializeViewer, viewer } from './map/viewer.js';
 import { loadOSMBuildings, removeHighlight} from './map/buildings.js';
 import { drawCampusBoundary } from './map/boundary.js';
-import { loadCampusMetadata } from './data/metadata.js';
+import { loadCampusMetadata, campusDataSource } from './data/metadata.js';
 import { analyzePathwayData } from './data/pathways.js';
 import { buildPathwayGraph } from './navigation/pathGraph.js';
 import { getUserLocation } from './map/userLocation.js';
@@ -78,4 +78,22 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeApp);
 } else {
     initializeApp();
+}
+
+const pathways = analyzePathwayData();
+console.log(`Pathways analyzed: ${pathways.length}`);
+
+// ADD THESE DEBUG LOGS:
+if (pathways.length === 0) {
+    console.error('❌ CRITICAL: pathwayData is empty on this browser!');
+    console.log('campusDataSource exists:', !!campusDataSource);
+} else {
+    console.log('✅ pathwayData populated correctly');
+}
+
+const graph = buildPathwayGraph();
+if (graph) {
+    console.log(`✅ Graph: ${graph.nodeCount} nodes, ${graph.edgeCount} edges`);
+} else {
+    console.error('❌ CRITICAL: Graph failed to build!');
 }

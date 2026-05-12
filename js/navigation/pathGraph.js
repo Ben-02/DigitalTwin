@@ -232,3 +232,4 @@ function reconstructPath(cameFrom, current) {
 }
 
 export function getPathwayGraph() { return pathwayGraph; }
+export function getNodeById(id) { return nodeById.get(id);}

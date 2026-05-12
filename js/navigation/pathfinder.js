@@ -1,7 +1,7 @@
 import { viewer } from '../map/viewer.js';
 import { userLocation } from '../map/userLocation.js';
 import { setLastDestination, clearLastDestination } from '../map/userLocation.js';
-import { findNearestNode, findPath, getPathwayGraph } from './pathGraph.js';
+import { findNearestNode, findPath, getPathwayGraph, getNodeById } from './pathGraph.js';
 
 let currentRoutePath = [];
 let currentDestination = { lat: null, lon: null, name: null };
@@ -94,7 +94,7 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
     
     // Add path nodes
     path.forEach(nodeId => {
-        const node = Array.from(graph.nodes.values()).find(n => n.id === nodeId);
+        const node = getNodeById(nodeId);
         if (node) {
             pathCoordinates.push(node.longitude, node.latitude);
         }
@@ -107,7 +107,7 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
     currentRoutePath = [];
     currentRoutePath.push({ lat: userLocation.latitude, lon: userLocation.longitude });
     path.forEach(nodeId => {
-        const node = Array.from(graph.nodes.values()).find(n => n.id === nodeId);
+        const node = getNodeById(nodeId);
         if (node) currentRoutePath.push({ lat: node.latitude, lon: node.longitude });
     });
     currentRoutePath.push({ lat: targetLat, lon: targetLon });
@@ -131,8 +131,8 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
     // Calculate total distance
     let totalDistance = startResult.distance + endResult.distance;
     for (let i = 0; i < path.length - 1; i++) {
-        const node1 = Array.from(graph.nodes.values()).find(n => n.id === path[i]);
-        const node2 = Array.from(graph.nodes.values()).find(n => n.id === path[i + 1]);
+        const node1 = getNodeById(path[i]);
+        const node2 = getNodeById(path[i + 1]);
         if (node1 && node2) {
             totalDistance += calculateDistance(
                 node1.latitude, node1.longitude,

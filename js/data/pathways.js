@@ -9,7 +9,7 @@ export function analyzePathwayData() {
     }
     
     const entities = campusDataSource.entities.values;
-    pathwayData = []; // Reset
+    pathwayData.length = 0; // ← Correct! Clears array without reassigning
     
     console.log("🔍 Analyzing GeoJSON for pathway data...");
     
@@ -19,7 +19,6 @@ export function analyzePathwayData() {
         const props = entity.properties;
         const highway = props.highway?._value;
         
-        // Check if this is a pathway/road
         if (highway) {
             const pathway = {
                 type: highway,
@@ -36,7 +35,6 @@ export function analyzePathwayData() {
     
     console.log(`📊 Total pathways found: ${pathwayData.length}`);
     
-    // Group by type
     const byType = {};
     pathwayData.forEach(p => {
         byType[p.type] = (byType[p.type] || 0) + 1;
@@ -44,5 +42,5 @@ export function analyzePathwayData() {
     
     console.log("Pathway types:", byType);
     
-    return pathwayData; // Make sure to return it
+    return pathwayData;
 }
