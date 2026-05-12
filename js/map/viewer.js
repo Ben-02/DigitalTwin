@@ -34,40 +34,5 @@ export function initializeViewer() {
 
     window.viewer = viewer;
     console.log("✅ Cesium viewer initialized");
-
-    // Lock camera to Curtin Bentley campus
-    const campusBounds = {
-        minLon: Cesium.Math.toRadians(115.878),
-        maxLon: Cesium.Math.toRadians(115.908),
-        minLat: Cesium.Math.toRadians(-33.019),
-        maxLat: Cesium.Math.toRadians(-31.993),
-        minHeight: 50,
-        maxHeight: 3150
-    };
-
-    // ✅ preUpdate - intercepts BEFORE render (no jitter!)
-    viewer.scene.preUpdate.addEventListener(() => {
-        const pos = viewer.camera.positionCartographic;
-        if (!pos) return;
-
-        let outOfBounds = false;
-
-        let lon = pos.longitude;
-        if (lon < campusBounds.minLon) { lon = campusBounds.minLon; outOfBounds = true; }
-        if (lon > campusBounds.maxLon) { lon = campusBounds.maxLon; outOfBounds = true; }
-
-        let lat = pos.latitude;
-        if (lat < campusBounds.minLat) { lat = campusBounds.minLat; outOfBounds = true; }
-        if (lat > campusBounds.maxLat) { lat = campusBounds.maxLat; outOfBounds = true; }
-
-        let height = pos.height;
-        if (height < campusBounds.minHeight) { height = campusBounds.minHeight; outOfBounds = true; }
-        if (height > campusBounds.maxHeight) { height = campusBounds.maxHeight; outOfBounds = true; }
-
-        if (outOfBounds) {
-            viewer.camera.position = Cesium.Cartesian3.fromRadians(lon, lat, height);
-        }
-    });
-
     return viewer;
 }
