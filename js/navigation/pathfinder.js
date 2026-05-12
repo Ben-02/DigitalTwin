@@ -147,7 +147,9 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
     zoomToShowRoute(targetLat, targetLon);
     showRouteInfo(totalDistance, targetName);
     viewer.scene.requestRender(); 
-
+    setTimeout(() => {
+        import('./tripMode.js').catch(() => {});
+    }, 500);
     
     return {
         distance: totalDistance,
@@ -222,7 +224,6 @@ export function clearRoute() {
 
 window.clearRoute = clearRoute;
 window.startTripFromRoute = function() {
-    // INSTANT visual feedback - drops INP
     const btn = document.getElementById('startTripBtn');
     if (btn) {
         btn.textContent = '⏳ Starting...';
@@ -230,12 +231,23 @@ window.startTripFromRoute = function() {
         btn.disabled = true;
     }
 
-    import('./tripMode.js').then(({ startTrip }) => {
-        startTrip(
-            currentRoutePath,
-            currentDestination.name,
-            currentDestination.lat,
-            currentDestination.lon
-        );
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            import('./tripMode.js').then(({ startTrip }) => {
+                startTrip(
+                    currentRoutePath,
+                    currentDestination.name,
+                    currentDestination.lat,
+                    currentDestination.lon
+                );
+            }).catch(err => {
+                console.error("Failed to load trip mode:", err);
+                if (btn) {
+                    btn.textContent = '▶ Start Trip';
+                    btn.style.background = '#27ae60';
+                    btn.disabled = false;
+                }
+            });
+        });
     });
 };

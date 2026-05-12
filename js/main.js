@@ -48,16 +48,37 @@ function setupUIEventListeners() {
     const searchButton = document.getElementById('searchButton');
     if (searchButton) {
         searchButton.addEventListener('click', () => {
-            console.log("Search button clicked");
-            searchBuilding();
+            searchButton.textContent = 'Searching...';
+            searchButton.style.background = '#95a5a6';
+            searchButton.disabled = true;
+
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    searchBuilding();
+                    searchButton.textContent = 'Search';
+                    searchButton.style.background = '#ff6600';
+                    searchButton.disabled = false;
+                });
+            });
         });
     }
-    
+
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
-                searchBuilding();
+                searchButton.textContent = 'Searching...';
+                searchButton.style.background = '#95a5a6';
+                searchButton.disabled = true;
+
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        searchBuilding();
+                        searchButton.textContent = 'Search';
+                        searchButton.style.background = '#ff6600';
+                        searchButton.disabled = false;
+                    });
+                });
             }
         });
     }
