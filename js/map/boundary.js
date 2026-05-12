@@ -14,5 +14,6 @@ export function drawCampusBoundary() {
         }
     });
     
+    viewer.scene.requestRender();
     console.log("✅ Campus boundary drawn");
 }
