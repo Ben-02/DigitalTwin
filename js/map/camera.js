@@ -24,13 +24,14 @@ export function flyToBuilding(lat, lon, buildingHeight = 10) {
 export function flyToCampus() {
     viewer.camera.flyTo({
         destination: Cesium.Cartesian3.fromDegrees(
-            CONFIG.CAMPUS_CENTER.longitude,
-            CONFIG.CAMPUS_CENTER.latitude,
-            CONFIG.CAMPUS_CENTER.height
+            115.8924,   // Slightly west to center campus
+            -32.0205,   // Campus center latitude
+            3150        // Higher altitude to see full campus
         ),
         orientation: {
-            heading: 0,
-            pitch: Cesium.Math.toRadians(-45),
+            heading: Cesium.Math.toRadians(0),
+            pitch: Cesium.Math.toRadians(-60), // More top-down
+            roll: 0
         },
         duration: 3
     });

@@ -6,19 +6,13 @@ export const CONFIG = {
         CAMPUS_DATA: 3911682
     },
     
-    CAMPUS_CENTER: {
-        longitude: 115.8945,
-        latitude: -32.0063,
-        height: 800
-    },
-    
     CAMPUS_BOUNDARY: {
         coords: [
-            115.89100, -32.00100,  // Northwest
-            115.89800, -32.00100,  // Northeast
-            115.89800, -32.00900,  // Southeast
-            115.89100, -32.00900,  // Southwest
-            115.89100, -32.00100   // Close loop
+            115.88200, -31.99050,  // Northwest (Hayman Road + Kent Street)
+            115.90020, -31.99050,  // Northeast (Hayman Road + Brand Drive)
+            115.90020, -32.01350,  // Southeast (Manning Road + Brand Drive)
+            115.88200, -32.01350,  // Southwest (Manning Road + Kent Street)
+            115.88200, -31.99050   // Close loop
         ]
     },
     
