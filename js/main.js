@@ -18,14 +18,12 @@ async function initializeApp() {
         await loadOSMBuildings();
         await loadCampusMetadata();
         
-        // Analyze pathways FIRST
         const pathways = analyzePathwayData();
         console.log(`Pathways analyzed: ${pathways.length}`);
         
-        // then build the graph
         const graph = buildPathwayGraph();
         if (!graph) {
-            console.error("⚠️ Failed to build pathway graph - pathfinding will not work");
+            console.error("⚠️ Failed to build pathway graph");
         }
         
         await getUserLocation();
@@ -34,7 +32,7 @@ async function initializeApp() {
         flyToCampus();
         enableBuildingClick();
         setupUIEventListeners();
-        
+
         viewer.scene.requestRender();
         console.log("🎉 Campus loaded successfully!");
         
@@ -78,22 +76,4 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeApp);
 } else {
     initializeApp();
-}
-
-const pathways = analyzePathwayData();
-console.log(`Pathways analyzed: ${pathways.length}`);
-
-// ADD THESE DEBUG LOGS:
-if (pathways.length === 0) {
-    console.error('❌ CRITICAL: pathwayData is empty on this browser!');
-    console.log('campusDataSource exists:', !!campusDataSource);
-} else {
-    console.log('✅ pathwayData populated correctly');
-}
-
-const graph = buildPathwayGraph();
-if (graph) {
-    console.log(`✅ Graph: ${graph.nodeCount} nodes, ${graph.edgeCount} edges`);
-} else {
-    console.error('❌ CRITICAL: Graph failed to build!');
 }
