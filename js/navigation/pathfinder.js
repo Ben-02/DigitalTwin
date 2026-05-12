@@ -196,7 +196,7 @@ function showRouteInfo(distance, targetName) {
         <p><strong>Walking Time:</strong> ~${walkingTime} minute${walkingTime > 1 ? 's' : ''}</p>
         <p><em>Blue line follows campus pathways.</em></p>
         <div style="display:flex; gap:8px; margin-top:12px;">
-            <button onclick="window.startTripFromRoute()" 
+            <button id="startTripBtn" onclick="window.startTripFromRoute()" " 
                 style="flex:1; padding:11px; background:#27ae60; color:white; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer;">
                 ▶ Start Trip
             </button>
@@ -222,6 +222,14 @@ export function clearRoute() {
 
 window.clearRoute = clearRoute;
 window.startTripFromRoute = function() {
+    // INSTANT visual feedback - drops INP
+    const btn = document.getElementById('startTripBtn');
+    if (btn) {
+        btn.textContent = '⏳ Starting...';
+        btn.style.background = '#95a5a6';
+        btn.disabled = true;
+    }
+
     import('./tripMode.js').then(({ startTrip }) => {
         startTrip(
             currentRoutePath,

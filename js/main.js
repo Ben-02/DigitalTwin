@@ -1,7 +1,7 @@
 import { initializeViewer, viewer } from './map/viewer.js';
 import { loadOSMBuildings, removeHighlight} from './map/buildings.js';
 import { drawCampusBoundary } from './map/boundary.js';
-import { loadCampusMetadata, campusDataSource } from './data/metadata.js';
+import { loadCampusMetadata } from './data/metadata.js';
 import { analyzePathwayData } from './data/pathways.js';
 import { buildPathwayGraph } from './navigation/pathGraph.js';
 import { getUserLocation } from './map/userLocation.js';
@@ -34,6 +34,7 @@ async function initializeApp() {
         setupUIEventListeners();
 
         viewer.scene.requestRender();
+        import('./navigation/tripMode.js').catch(() => {});
         console.log("🎉 Campus loaded successfully!");
         
     } catch (error) {
@@ -68,12 +69,15 @@ function setupUIEventListeners() {
             removeHighlight();
         });
     }
-    
     console.log("✅ UI event listeners setup complete");
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeApp);
-} else {
-    initializeApp();
-}
+    if (document.readyState === 'loading') 
+    {
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    } 
+    else 
+    {
+        initializeApp();
+
+    }

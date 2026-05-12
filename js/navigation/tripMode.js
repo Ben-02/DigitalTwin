@@ -1,5 +1,6 @@
 import { viewer } from '../map/viewer.js';
 import { updatePositionDuringNavigation } from '../map/userLocation.js';
+import { osmBuildings } from '../map/buildings.js';
 
 // Navigation state
 let isNavigating = false;
@@ -15,6 +16,11 @@ let offRouteTimer = null;
 let smoothLat = null;
 let smoothLon = null;
 
+// Camera follow state
+let isFollowingUser = true;
+let userInteracting = false;
+let interactionTimer = null;
+
 // ===== START NAVIGATION =====
 export function startTrip(path, destName, destLat, destLon) {
     if (!path || path.length === 0) {
@@ -23,6 +29,7 @@ export function startTrip(path, destName, destLat, destLon) {
     }
 
     isNavigating = true;
+    isFollowingUser = true;
     routePath = path;
     destinationName = destName;
     destinationLat = destLat;
@@ -34,7 +41,7 @@ export function startTrip(path, destName, destLat, destLon) {
 
     console.log(`🚀 Starting navigation to ${destName}`);
 
-    // Collapse search panel to give more map space
+    // Collapse search panel
     const content = document.getElementById('ui-content');
     const btn = document.getElementById('toggle-btn');
     if (content) content.style.display = 'none';
@@ -44,12 +51,15 @@ export function startTrip(path, destName, destLat, destLon) {
     showNavigationUI();
     updateInstructionBanner('Starting navigation...', '', '#2c3e50');
 
+    // Add touch/mouse interaction listeners
+    addInteractionListeners();
+
     // Start watching GPS
     if (navigator.geolocation) {
         watchId = navigator.geolocation.watchPosition(
             onPositionUpdate,
             onPositionError,
-            { enableHighAccuracy: true, timeout: 5000, maximumAge: 3000 }
+            { enableHighAccuracy: true, timeout: 5000, maximumAge: 5000 }
         );
     }
 
@@ -76,7 +86,24 @@ export function stopTrip() {
         offRouteTimer = null;
     }
 
-    // Unlock camera so user can pan freely again
+    if (interactionTimer) {
+        clearTimeout(interactionTimer);
+        interactionTimer = null;
+    }
+
+    // Remove interaction listeners
+    removeInteractionListeners();
+
+    // Remove re-center button
+    const recenterBtn = document.getElementById('nav-recenter-btn');
+    if (recenterBtn) recenterBtn.remove();
+
+    // Restore tile quality
+    if (osmBuildings) {
+        osmBuildings.maximumScreenSpaceError = 16;
+    }
+
+    // Fly back to overview
     viewer.camera.flyTo({
         destination: Cesium.Cartesian3.fromDegrees(
             previousLon || 115.8945,
@@ -90,7 +117,7 @@ export function stopTrip() {
         },
         duration: 1.5
     });
-    // Hide navigation UI
+
     hideNavigationUI();
 
     // Re-expand search panel
@@ -99,7 +126,104 @@ export function stopTrip() {
     if (content) content.style.display = 'block';
     if (btn) btn.textContent = '▼';
 
+    viewer.scene.requestRender();
     console.log('🛑 Navigation stopped');
+}
+
+// ===== INTERACTION DETECTION (Camera Fight Fix) =====
+function addInteractionListeners() {
+    const canvas = viewer.scene.canvas;
+    canvas.addEventListener('pointerdown', onInteractionStart);
+    canvas.addEventListener('pointerup', onInteractionEnd);
+    canvas.addEventListener('touchstart', onInteractionStart, { passive: true });
+    canvas.addEventListener('touchend', onInteractionEnd, { passive: true });
+}
+
+function removeInteractionListeners() {
+    const canvas = viewer.scene.canvas;
+    canvas.removeEventListener('pointerdown', onInteractionStart);
+    canvas.removeEventListener('pointerup', onInteractionEnd);
+    canvas.removeEventListener('touchstart', onInteractionStart);
+    canvas.removeEventListener('touchend', onInteractionEnd);
+}
+
+function onInteractionStart() {
+    if (!isNavigating) return;
+    userInteracting = true;
+    isFollowingUser = false;
+
+    // Increase LOD error = lower quality = faster rendering during interaction
+    if (osmBuildings) {
+        osmBuildings.maximumScreenSpaceError = 64;
+        viewer.scene.requestRender();
+    }
+
+    showRecenterButton();
+
+    if (interactionTimer) {
+        clearTimeout(interactionTimer);
+        interactionTimer = null;
+    }
+}
+
+function onInteractionEnd() {
+    if (!isNavigating) return;
+
+    // Restore quality after 500ms
+    if (interactionTimer) clearTimeout(interactionTimer);
+    interactionTimer = setTimeout(() => {
+        userInteracting = false;
+        if (osmBuildings) {
+            osmBuildings.maximumScreenSpaceError = 16;
+            viewer.scene.requestRender();
+        }
+    }, 500);
+}
+
+// ===== RE-CENTER BUTTON =====
+function showRecenterButton() {
+    let btn = document.getElementById('nav-recenter-btn');
+    if (!btn) {
+        btn = document.createElement('button');
+        btn.id = 'nav-recenter-btn';
+        btn.textContent = '⊙ Re-center';
+        btn.style.cssText = `
+            position: fixed;
+            bottom: 90px;
+            right: 16px;
+            z-index: 3000;
+            padding: 10px 16px;
+            background: white;
+            color: #2c3e50;
+            border: 2px solid #2c3e50;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        `;
+        btn.addEventListener('click', recenterCamera);
+        document.body.appendChild(btn);
+    }
+    btn.style.display = 'block';
+}
+
+function hideRecenterButton() {
+    const btn = document.getElementById('nav-recenter-btn');
+    if (btn) btn.style.display = 'none';
+}
+
+function recenterCamera() {
+    isFollowingUser = true;
+    hideRecenterButton();
+    if (previousLat && previousLon) {
+        zoomToUser(previousLat, previousLon, currentHeading);
+    }
+    // Restore normal tile quality
+    if (osmBuildings) {
+        osmBuildings.maximumScreenSpaceError = 16;
+        viewer.scene.requestRender();
+    }
 }
 
 // ===== GPS UPDATE HANDLER =====
@@ -109,34 +233,26 @@ function onPositionUpdate(position) {
     const rawLat = position.coords.latitude;
     const rawLon = position.coords.longitude;
 
-    // Smooth position to reduce GPS jitter
     const { lat, lon } = smoothPosition(rawLat, rawLon);
 
-    // Calculate distance moved since last update
     const moved = previousLat !== null
         ? haversineDistance(previousLat, previousLon, lat, lon)
         : 0;
 
-    // Update heading only if moved 3+ meters
     if (moved > 3) {
         currentHeading = calculateBearing(previousLat, previousLon, lat, lon);
     }
 
-    // Update user marker on map
     updatePositionDuringNavigation(lat, lon);
 
-    // Only update camera if moved 5+ meters (reduces unnecessary re-renders)
-    if (moved > 5 || previousLat === null) {
+    // Only follow camera if user hasn't manually interacted
+    if ((moved > 5 || previousLat === null) && isFollowingUser) {
         zoomToUser(lat, lon, currentHeading);
     }
 
-    // Update instruction banner and distance bar
     updateNavigationUI(lat, lon);
-
-    // Check if off route
     checkOffRoute(lat, lon);
 
-    // Check if arrived
     const distToDest = haversineDistance(lat, lon, destinationLat, destinationLon);
     if (distToDest < 20) {
         onArrived();
@@ -151,6 +267,7 @@ function onPositionError(error) {
     console.error('GPS error during navigation:', error.message);
 }
 
+// ===== CAMERA FOLLOW =====
 function zoomToUser(lat, lon, heading) {
     viewer.camera.setView({
         destination: Cesium.Cartesian3.fromDegrees(lon, lat, 150),
@@ -204,7 +321,6 @@ function getNextInstruction(userLat, userLon) {
         return { text: `Head to ${destinationName}`, distance: 0 };
     }
 
-    // Find closest point on route
     let closestIdx = 0;
     let minDist = Infinity;
     for (let i = 0; i < routePath.length; i++) {
@@ -212,7 +328,6 @@ function getNextInstruction(userLat, userLon) {
         if (d < minDist) { minDist = d; closestIdx = i; }
     }
 
-    // Look ahead for next significant turn
     for (let i = closestIdx + 1; i < routePath.length - 1; i++) {
         const angle = getTurnAngle(
             routePath[i-1].lat, routePath[i-1].lon,
@@ -224,14 +339,10 @@ function getNextInstruction(userLat, userLon) {
             const distToTurn = haversineDistance(userLat, userLon, routePath[i].lat, routePath[i].lon);
             const dir = angle > 0 ? 'right' : 'left';
             const severity = Math.abs(angle) > 70 ? 'Turn' : 'Bear';
-            return {
-                text: `${severity} ${dir}`,
-                distance: Math.round(distToTurn)
-            };
+            return { text: `${severity} ${dir}`, distance: Math.round(distToTurn) };
         }
     }
 
-    // No turns - head straight to destination
     const distToDest = haversineDistance(userLat, userLon, destinationLat, destinationLon);
     return { text: `Head to ${destinationName}`, distance: Math.round(distToDest) };
 }
@@ -282,11 +393,9 @@ function checkOffRoute(lat, lon) {
             updateInstructionBanner('Recalculating...', '', '#e67e22');
             offRouteTimer = setTimeout(() => {
                 if (!isNavigating) return;
-                console.log('🔄 Off route - recalculating...');
                 import('./pathfinder.js').then(({ drawRouteTo, getCurrentRoutePath }) => {
-                    drawRouteTo(destinationLat, destinationLon, destinationName).then(() => {
-                        routePath = getCurrentRoutePath();
-                    });
+                    drawRouteTo(destinationLat, destinationLon, destinationName);
+                    routePath = getCurrentRoutePath();
                 });
                 offRouteTimer = null;
             }, 8000);
@@ -302,7 +411,7 @@ function checkOffRoute(lat, lon) {
 // ===== ARRIVAL =====
 function onArrived() {
     updateInstructionBanner(`Arrived at ${destinationName}!`, '', '#27ae60');
-    viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
+    removeInteractionListeners();
     setTimeout(() => {
         stopTrip();
         alert(`✅ You have arrived at ${destinationName}!`);
