@@ -1,8 +1,8 @@
 import { viewer } from '../map/viewer.js';
 import { highlightBuilding, removeHighlight } from '../map/buildings.js';
-import { getBuildingMetadata } from '../data/metadata.js';
-import { showBuildingInfoWithDirections, showGenericBuildingInfo, closeInfoPanel } from './infoPanel.js'; // ← Updated import
 import { flyToBuilding } from '../map/camera.js';
+import { showBuildingInfoWithDirections, showGenericBuildingInfo, showManualBuildingInfo, closeInfoPanel } from './infoPanel.js';
+import { getBuildingMetadata, getManualBuildingData } from '../data/metadata.js';
 // ← Removed drawRouteTo import
 
 let buildingClickHandler = null;
@@ -49,8 +49,15 @@ export function enableBuildingClick() {
                 
             } else {
                 console.log("⚠️ No metadata available for element ID:", elementId);
-                // showGenericBuildingInfo already has Get Directions button
-                showGenericBuildingInfo(elementId, lat, lon, height);
+                
+                // Try manual lookup before showing generic info
+                const manualData = getManualBuildingData(elementId);
+                if (manualData && (manualData.number || manualData.name)) {
+                    console.log(`✅ Found manual data for ${elementId}`);
+                    showManualBuildingInfo(manualData, lat, lon);
+                } else {
+                    showGenericBuildingInfo(elementId, lat, lon, height);
+                }
             }
             
             flyToBuilding(lat, lon, height);

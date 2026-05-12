@@ -1,8 +1,15 @@
 export function showBuildingInfo(entity) {
     const props = entity.properties;
     
-    const buildingNum = props['addr:housenumber']?._value || 'N/A';
+    const rawNum = props['addr:housenumber']?._value || '';
     const buildingName = props['addr:housename']?._value || props.name?._value || 'Unknown Building';
+
+    function extractNumFromName(name) {
+        const match = name.match(/^(\d+[A-Z]?)\s/);
+        return match ? match[1] : '';
+    }
+
+    const buildingNum = rawNum || extractNumFromName(buildingName) || 'N/A';
     const amenity = props.amenity?._value || '';
     const healthcare = props.healthcare?._value || '';
     const street = props['addr:street']?._value || '';
@@ -29,9 +36,18 @@ export function showBuildingInfo(entity) {
 export function showBuildingInfoWithDirections(entity, lat, lon, buildingName) {
     const props = entity.properties;
     
-    const buildingNum = props['addr:housenumber']?._value || 'N/A';
-    const displayName = props['addr:housename']?._value || props.name?._value || 'Unknown Building';
-    const amenity = props.amenity?._value || '';
+    const rawNum = props['addr:housenumber']?._value || '';
+    const rawName = props['addr:housename']?._value || props.name?._value || '';
+
+    // If no building number, try extracting from name 
+    function extractNumFromName(name) {
+        const match = name.match(/^(\d+[A-Z]?)\s/);
+        return match ? match[1] : '';
+    }
+
+    const buildingNum = rawNum || extractNumFromName(rawName) || 'N/A';
+    const displayName = rawName || 'Unknown Building';
+    const amenity = props.amenity?._value || '';   
     const healthcare = props.healthcare?._value || '';
     const street = props['addr:street']?._value || '';
     const suburb = props['addr:suburb']?._value || '';
@@ -79,6 +95,29 @@ export function showGenericBuildingInfo(elementId, lat, lon, height) {
         <div style="margin-top: 12px;">
             <button id="getDirectionsBtn"
                 onclick="window.getDirections(${lat}, ${lon}, 'Building')"
+                style="width:100%; padding:11px; background:#3498db; color:white; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer;">
+                🗺️ Get Directions
+            </button>
+        </div>
+    `;
+    
+    infoPanel.style.display = 'block';
+}
+
+export function showManualBuildingInfo(data, lat, lon) {
+    const infoPanel = document.getElementById('info-panel');
+    const infoContent = document.getElementById('info-content');
+    
+    const displayNum = data.number || 'Unknown';
+    const displayName = data.name || 'Unknown Building';
+    const safeName = displayName.replace(/'/g, "\\'");
+
+    infoContent.innerHTML = `
+        <h3>Building ${displayNum}</h3>
+        <p><strong>Name:</strong> ${displayName}</p>
+        <div style="margin-top: 12px;">
+            <button id="getDirectionsBtn"
+                onclick="window.getDirections(${lat}, ${lon}, 'Building ${displayNum}')"
                 style="width:100%; padding:11px; background:#3498db; color:white; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer;">
                 🗺️ Get Directions
             </button>

@@ -1,4 +1,5 @@
 import { CONFIG } from '../config.js';
+import { MANUAL_BUILDING_LOOKUP } from './buildingLookup.js';
 
 export let campusDataSource;
 export let buildingMetadataMap = new Map();
@@ -14,7 +15,6 @@ export async function loadCampusMetadata() {
     });
     
     buildMetadataMap();
-    
     console.log("✅ Metadata loaded!");
     console.log(`📊 ${buildingMetadataMap.size} buildings with metadata indexed`);
 }
@@ -46,4 +46,8 @@ function buildMetadataMap() {
 
 export function getBuildingMetadata(elementId) {
     return buildingMetadataMap.get(elementId);
+}
+
+export function getManualBuildingData(elementId) {
+    return MANUAL_BUILDING_LOOKUP[elementId] || null;
 }
