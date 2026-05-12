@@ -146,6 +146,8 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
     
     zoomToShowRoute(targetLat, targetLon);
     showRouteInfo(totalDistance, targetName);
+    viewer.scene.requestRender(); 
+
     
     return {
         distance: totalDistance,
@@ -212,7 +214,8 @@ export function clearRoute() {
     if (currentRoute) {
         viewer.entities.remove(currentRoute);
         currentRoute = null;
-        clearLastDestination(); // Clear saved destination
+        clearLastDestination();
+        viewer.scene.requestRender();
         console.log("🗑️ Route cleared");
     }
 }

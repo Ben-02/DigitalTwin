@@ -118,6 +118,7 @@ function showUserLocationMarker() {
     });
     
     console.log("✅ User location marker added to map");
+    viewer.scene.requestRender(); 
 }
 
 export function enableManualLocationSetting() {
