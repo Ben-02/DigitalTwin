@@ -1,53 +1,46 @@
 import { pathwayData } from '../data/pathways.js';
 
 let pathwayGraph = null;
+let nodeById = new Map(); // ← O(1) lookup by ID instead of Array.from().find()
 
-// Build a graph of pathway connections
 export function buildPathwayGraph() {
     console.log("🔨 Building pathway graph...");
     
     if (!pathwayData || pathwayData.length === 0) {
-        console.error("❌ No pathway data available! Cannot build graph.");
+        console.error("❌ No pathway data available!");
         return null;
     }
     
-    console.log(`Using ${pathwayData.length} pathways to build graph...`);
-    
     const nodes = new Map();
+    nodeById = new Map();
     const edges = [];
-    
     let nodeIdCounter = 0;
     
-    // Function to create a unique key for a coordinate
     function coordKey(lat, lon) {
         return `${lat.toFixed(6)},${lon.toFixed(6)}`;
     }
     
-    // Function to get or create a node
     function getOrCreateNode(lat, lon) {
         const key = coordKey(lat, lon);
-        
         if (!nodes.has(key)) {
-            nodes.set(key, {
+            const node = {
                 id: nodeIdCounter++,
                 latitude: lat,
                 longitude: lon,
                 key: key,
                 connections: []
-            });
+            };
+            nodes.set(key, node);
+            nodeById.set(node.id, node); // ← Index by ID for fast lookup
         }
-        
         return nodes.get(key);
     }
     
-    // Process each pathway to build nodes and edges
     pathwayData.forEach(pathway => {
         const entity = pathway.entity;
-        
         if (entity.polyline && entity.polyline.positions) {
             const positions = entity.polyline.positions.getValue(Cesium.JulianDate.now());
             
-            // Convert positions to lat/lon
             const pathPoints = positions.map(position => {
                 const cartographic = Cesium.Cartographic.fromCartesian(position);
                 return {
@@ -56,82 +49,57 @@ export function buildPathwayGraph() {
                 };
             });
             
-            // Create nodes and edges for this pathway
             for (let i = 0; i < pathPoints.length - 1; i++) {
-                const point1 = pathPoints[i];
-                const point2 = pathPoints[i + 1];
+                const node1 = getOrCreateNode(pathPoints[i].latitude, pathPoints[i].longitude);
+                const node2 = getOrCreateNode(pathPoints[i+1].latitude, pathPoints[i+1].longitude);
                 
-                const node1 = getOrCreateNode(point1.latitude, point1.longitude);
-                const node2 = getOrCreateNode(point2.latitude, point2.longitude);
-                
-                // Calculate distance between nodes
                 const distance = calculateDistance(
-                    point1.latitude, point1.longitude,
-                    point2.latitude, point2.longitude
+                    pathPoints[i].latitude, pathPoints[i].longitude,
+                    pathPoints[i+1].latitude, pathPoints[i+1].longitude
                 );
                 
-                // Create bidirectional edge
-                const edge = {
-                    from: node1.id,
-                    to: node2.id,
-                    distance: distance,
-                    pathway: pathway
-                };
+                edges.push({ from: node1.id, to: node2.id, distance });
                 
-                edges.push(edge);
-                
-                // Add connections to nodes
                 if (!node1.connections.some(c => c.nodeId === node2.id)) {
-                    node1.connections.push({ nodeId: node2.id, distance: distance });
+                    node1.connections.push({ nodeId: node2.id, distance });
                 }
                 if (!node2.connections.some(c => c.nodeId === node1.id)) {
-                    node2.connections.push({ nodeId: node1.id, distance: distance });
+                    node2.connections.push({ nodeId: node1.id, distance });
                 }
             }
         }
     });
     
     pathwayGraph = {
-        nodes: nodes,
-        edges: edges,
+        nodes,
+        edges,
         nodeCount: nodes.size,
         edgeCount: edges.length
     };
     
     console.log(`✅ Pathway graph built: ${pathwayGraph.nodeCount} nodes, ${pathwayGraph.edgeCount} edges`);
-    
     return pathwayGraph;
 }
 
-// Calculate distance between two points (Haversine formula)
 function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371e3; // Earth radius in meters
+    const R = 6371e3;
     const φ1 = lat1 * Math.PI / 180;
     const φ2 = lat2 * Math.PI / 180;
     const Δφ = (lat2 - lat1) * Math.PI / 180;
     const Δλ = (lon2 - lon1) * Math.PI / 180;
-
-    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ/2) * Math.sin(Δλ/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-    return R * c;
+    const a = Math.sin(Δφ/2) ** 2 +
+              Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-// Find nearest node to a location
 export function findNearestNode(lat, lon) {
-    if (!pathwayGraph) {
-        console.error("Pathway graph not built yet!");
-        return null;
-    }
+    if (!pathwayGraph) return null;
     
     let nearestNode = null;
     let minDistance = Infinity;
     
     pathwayGraph.nodes.forEach(node => {
         const distance = calculateDistance(lat, lon, node.latitude, node.longitude);
-        
         if (distance < minDistance) {
             minDistance = distance;
             nearestNode = node;
@@ -141,72 +109,112 @@ export function findNearestNode(lat, lon) {
     return { node: nearestNode, distance: minDistance };
 }
 
-// Simple A* pathfinding algorithm
+// ===== OPTIMIZED A* =====
 export function findPath(startNode, endNode) {
     if (!pathwayGraph) return null;
     
-    console.log(`🔍 Finding path from node ${startNode.id} to node ${endNode.id}...`);
+    console.log(`🔍 Finding path: node ${startNode.id} → node ${endNode.id}`);
     
-    const openSet = new Set([startNode.id]);
-    const cameFrom = new Map();
     const gScore = new Map();
-    const fScore = new Map();
+    const cameFrom = new Map();
+    const closedSet = new Set();
+    const openSet = new MinHeap();
     
-    // Initialize scores
-    pathwayGraph.nodes.forEach(node => {
-        gScore.set(node.id, Infinity);
-        fScore.set(node.id, Infinity);
-    });
-    
+    // Lazy initialization - only set scores when needed
     gScore.set(startNode.id, 0);
-    fScore.set(startNode.id, heuristic(startNode, endNode));
+    openSet.push({ id: startNode.id, f: heuristic(startNode, endNode) });
     
-    while (openSet.size > 0) {
-        // Find node in openSet with lowest fScore
-        let current = null;
-        let lowestF = Infinity;
+    while (!openSet.isEmpty()) {
+        const { id: current } = openSet.pop();
         
-        openSet.forEach(nodeId => {
-            const f = fScore.get(nodeId);
-            if (f < lowestF) {
-                lowestF = f;
-                current = nodeId;
-            }
-        });
+        // Skip if already processed
+        if (closedSet.has(current)) continue;
+        closedSet.add(current);
         
-        // Get current node
-        const currentNode = Array.from(pathwayGraph.nodes.values()).find(n => n.id === current);
-        
-        // Check if reached the goal
+        // Reached destination!
         if (current === endNode.id) {
             console.log("✅ Path found!");
             return reconstructPath(cameFrom, current);
         }
         
-        openSet.delete(current);
+        // O(1) lookup - no more Array.from().find()!
+        const currentNode = nodeById.get(current);
+        if (!currentNode) continue;
         
-        // Check all neighbours
+        const currentG = gScore.get(current) ?? Infinity;
+        
         currentNode.connections.forEach(connection => {
             const neighborId = connection.nodeId;
-            const tentativeGScore = gScore.get(current) + connection.distance;
+            if (closedSet.has(neighborId)) return;
             
-            if (tentativeGScore < gScore.get(neighborId)) {
-                const neighborNode = Array.from(pathwayGraph.nodes.values()).find(n => n.id === neighborId);
+            const tentativeG = currentG + connection.distance;
+            const neighborG = gScore.get(neighborId) ?? Infinity;
+            
+            if (tentativeG < neighborG) {
+                // O(1) lookup for neighbor!
+                const neighborNode = nodeById.get(neighborId);
+                if (!neighborNode) return;
                 
                 cameFrom.set(neighborId, current);
-                gScore.set(neighborId, tentativeGScore);
-                fScore.set(neighborId, tentativeGScore + heuristic(neighborNode, endNode));
-                
-                openSet.add(neighborId);
+                gScore.set(neighborId, tentativeG);
+                openSet.push({
+                    id: neighborId,
+                    f: tentativeG + heuristic(neighborNode, endNode)
+                });
             }
         });
     }
     
     console.log("❌ No path found");
-    return null; // No path found
+    return null;
 }
 
-// Heuristic function (straight-line distance)
+// ===== MIN HEAP (Priority Queue for A*) =====
+// O(log n) push/pop vs O(n) iteration through Set
+class MinHeap {
+    constructor() { this.heap = []; }
+    
+    push(item) {
+        this.heap.push(item);
+        this._bubbleUp(this.heap.length - 1);
+    }
+    
+    pop() {
+        const top = this.heap[0];
+        const last = this.heap.pop();
+        if (this.heap.length > 0) {
+            this.heap[0] = last;
+            this._sinkDown(0);
+        }
+        return top;
+    }
+    
+    isEmpty() { return this.heap.length === 0; }
+    
+    _bubbleUp(i) {
+        while (i > 0) {
+            const parent = Math.floor((i - 1) / 2);
+            if (this.heap[parent].f <= this.heap[i].f) break;
+            [this.heap[parent], this.heap[i]] = [this.heap[i], this.heap[parent]];
+            i = parent;
+        }
+    }
+    
+    _sinkDown(i) {
+        const n = this.heap.length;
+        while (true) {
+            let smallest = i;
+            const left = 2 * i + 1;
+            const right = 2 * i + 2;
+            if (left < n && this.heap[left].f < this.heap[smallest].f) smallest = left;
+            if (right < n && this.heap[right].f < this.heap[smallest].f) smallest = right;
+            if (smallest === i) break;
+            [this.heap[smallest], this.heap[i]] = [this.heap[i], this.heap[smallest]];
+            i = smallest;
+        }
+    }
+}
+
 function heuristic(node1, node2) {
     return calculateDistance(
         node1.latitude, node1.longitude,
@@ -214,18 +222,13 @@ function heuristic(node1, node2) {
     );
 }
 
-// Reconstruct path from A* result
 function reconstructPath(cameFrom, current) {
     const path = [current];
-    
     while (cameFrom.has(current)) {
         current = cameFrom.get(current);
         path.unshift(current);
     }
-    
     return path;
 }
 
-export function getPathwayGraph() {
-    return pathwayGraph;
-}
+export function getPathwayGraph() { return pathwayGraph; }

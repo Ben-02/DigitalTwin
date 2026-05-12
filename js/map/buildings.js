@@ -10,9 +10,6 @@ export async function loadOSMBuildings() {
     
     // Optimize tileset performance
     osmBuildings.maximumScreenSpaceError = 16; // Default is 16, increase for better performance
-    osmBuildings.dynamicScreenSpaceError = true;
-    osmBuildings.dynamicScreenSpaceErrorDensity = 0.00278;
-    osmBuildings.dynamicScreenSpaceErrorFactor = 4.0;
     
     viewer.scene.primitives.add(osmBuildings);
     viewer.scene.requestRender(); // ← Tell Cesium to re-render
