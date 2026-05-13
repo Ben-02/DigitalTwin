@@ -231,6 +231,18 @@ export function clearRoute() {
     }
 }
 
+export function updateRouteDisplay(userLat, userLon, fromIndex) {
+    if (!currentRoute || !currentRoutePath || currentRoutePath.length === 0) return;
+
+    const coords = [userLon, userLat];
+    for (let i = fromIndex; i < currentRoutePath.length; i++) {
+        coords.push(currentRoutePath[i].lon, currentRoutePath[i].lat);
+    }
+
+    currentRoute.polyline.positions = Cesium.Cartesian3.fromDegreesArray(coords);
+    viewer.scene.requestRender();
+}
+
 window.clearRoute = clearRoute;
 window.startTripFromRoute = function() {
     const btn = document.getElementById('startTripBtn');

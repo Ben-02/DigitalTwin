@@ -1,6 +1,7 @@
 import { viewer } from '../map/viewer.js';
-import { updatePositionDuringNavigation } from '../map/userLocation.js';
+import { updatePositionDuringNavigation, userLocation } from '../map/userLocation.js';
 import { osmBuildings } from '../map/buildings.js';
+import { updateRouteDisplay } from './pathfinder.js';
 
 // Navigation state
 let isNavigating = false;
@@ -66,12 +67,10 @@ export function startTrip(path, destName, destLat, destLon) {
     }
 
     // Initial camera zoom to user
-    import('../map/userLocation.js').then(({ userLocation }) => {
-        if (userLocation) {
-            zoomToUser(userLocation.latitude, userLocation.longitude, 0);
-            updateNavigationUI(userLocation.latitude, userLocation.longitude);
-        }
-    });
+    if (userLocation) {
+        zoomToUser(userLocation.latitude, userLocation.longitude, 0);
+        updateNavigationUI(userLocation.latitude, userLocation.longitude);
+    }
 }
 
 // ===== STOP NAVIGATION =====
@@ -223,10 +222,17 @@ function hideRecenterButton() {
 function recenterCamera() {
     isFollowingUser = true;
     hideRecenterButton();
-    if (previousLat && previousLon) {
-        zoomToUser(previousLat, previousLon, currentHeading);
-    }
-    // Restore normal tile quality
+    const lat = userLocation ? userLocation.latitude : (previousLat || -32.0063);
+    const lon = userLocation ? userLocation.longitude : (previousLon || 115.8945);
+    viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(lon, lat, 150),
+        orientation: {
+            heading: Cesium.Math.toRadians(currentHeading),
+            pitch: Cesium.Math.toRadians(-50),
+            roll: 0
+        },
+        duration: 1.0
+    });
     if (osmBuildings) {
         osmBuildings.maximumScreenSpaceError = 16;
         viewer.scene.requestRender();
@@ -288,6 +294,7 @@ function onPositionUpdate(position) {
     const closest = findClosestRouteIndex(lat, lon);
     updateNavigationUI(lat, lon, closest);
     checkOffRoute(closest.dist);
+    updateRouteDisplay(lat, lon, closest.idx);
 
     const distToDest = haversineDistance(lat, lon, destinationLat, destinationLon);
     if (distToDest < 20) {

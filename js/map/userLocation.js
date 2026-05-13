@@ -6,9 +6,6 @@ let isManualLocation = false;
 let gpsLocation = null;
 let manualLocationHandler = null;
 let locationPermissionDenied = false;
-let pointCollection = null;
-let userPointPrimitive = null;
-
 // Store last destination for route redrawing
 let lastDestination = null;
 
@@ -82,32 +79,6 @@ export function getUserLocation() {
 }
 
 function showUserLocationMarker() {
-    // Initialize collection once
-    if (!pointCollection) {
-        pointCollection = viewer.scene.primitives.add(
-            new Cesium.PointPrimitiveCollection()
-        );
-    }
-
-    // Remove old point
-    if (userPointPrimitive) {
-        pointCollection.remove(userPointPrimitive);
-    }
-
-    userPointPrimitive = pointCollection.add({
-        position: Cesium.Cartesian3.fromDegrees(
-            userLocation.longitude,
-            userLocation.latitude,
-            2
-        ),
-        pixelSize: 15,
-        color: isManualLocation ? Cesium.Color.GREEN : Cesium.Color.BLUE,
-        outlineColor: Cesium.Color.WHITE,
-        outlineWidth: 3,
-        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
-    });
-
-    // Keep the label as a separate entity
     if (userLocationMarker) {
         viewer.entities.remove(userLocationMarker);
     }
@@ -122,8 +93,15 @@ function showUserLocationMarker() {
         position: Cesium.Cartesian3.fromDegrees(
             userLocation.longitude,
             userLocation.latitude,
-            2
+            0
         ),
+        point: {
+            pixelSize: 15,
+            color: isManualLocation ? Cesium.Color.GREEN : Cesium.Color.BLUE,
+            outlineColor: Cesium.Color.WHITE,
+            outlineWidth: 3,
+            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+        },
         label: {
             text: labelText,
             font: '14px sans-serif',
@@ -413,14 +391,11 @@ export function updateUserLocation() {
 export function updatePositionDuringNavigation(lat, lon) {
     userLocation = { ...userLocation, latitude: lat, longitude: lon };
 
-    // Update PointPrimitive directly - much faster!
-    if (userPointPrimitive) {
-        userPointPrimitive.position = Cesium.Cartesian3.fromDegrees(lon, lat, 2);
-    }
-
-    // Hide label during navigation for performance
-    if (userLocationMarker && userLocationMarker.label) {
-        userLocationMarker.label.show = false;
+    if (userLocationMarker) {
+        userLocationMarker.position = Cesium.Cartesian3.fromDegrees(lon, lat, 0);
+        if (userLocationMarker.label) {
+            userLocationMarker.label.show = false;
+        }
     }
 
     viewer.scene.requestRender();
