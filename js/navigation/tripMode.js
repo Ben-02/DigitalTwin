@@ -403,15 +403,36 @@ function getTurnAngle(lat1, lon1, lat2, lon2, lat3, lon3) {
 }
 
 // ===== REMAINING DISTANCE =====
-function getRemainingDistance(closestIdx, closestDist) {
+function getRemainingDistance(closestIdx, userLat, userLon) {
     if (!routePath || routePath.length === 0) return 0;
 
-    let remaining = closestDist;
-    for (let i = closestIdx; i < routePath.length - 1; i++) {
-        remaining += haversineDistance(
-            routePath[i].lat, routePath[i].lon,
-            routePath[i+1].lat, routePath[i+1].lon
-        );
+    let remaining = 0;
+
+    if (closestIdx < routePath.length - 1) {
+        const A = routePath[closestIdx];
+        const B = routePath[closestIdx + 1];
+        const segLen = haversineDistance(A.lat, A.lon, B.lat, B.lon);
+
+        if (segLen > 0) {
+            // Project user onto segment A→B
+            const toRad = Math.PI / 180;
+            const cosLat = Math.cos((A.lat + B.lat) / 2 * toRad);
+            const ax = (userLon - A.lon) * cosLat;
+            const ay = userLat - A.lat;
+            const bx = (B.lon - A.lon) * cosLat;
+            const by = B.lat - A.lat;
+            const t = Math.max(0, Math.min(1, (ax * bx + ay * by) / (bx * bx + by * by)));
+            remaining = segLen * (1 - t);
+        }
+
+        for (let i = closestIdx + 1; i < routePath.length - 1; i++) {
+            remaining += haversineDistance(
+                routePath[i].lat, routePath[i].lon,
+                routePath[i+1].lat, routePath[i+1].lon
+            );
+        }
+    } else {
+        remaining = haversineDistance(userLat, userLon, destinationLat, destinationLon);
     }
 
     return Math.round(remaining);
@@ -471,7 +492,7 @@ function updateNavigationUI(userLat, userLon, closest) {
     }
 
     const instruction = getNextInstruction(userLat, userLon, closest.idx);
-    const remaining = getRemainingDistance(closest.idx, closest.dist);
+    const remaining = getRemainingDistance(closest.idx, userLat, userLon);
     const mins = Math.ceil(remaining / 80);
 
     updateInstructionBanner(
