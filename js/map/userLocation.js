@@ -1,4 +1,5 @@
 import { viewer } from './viewer.js';
+import { CONFIG } from '../config.js';
 
 export let userLocation = null;
 export let userLocationMarker = null;
@@ -157,12 +158,17 @@ export function enableManualLocationSetting() {
 
 function enterManualClickMode() {
     console.log("🖱️ Manual location mode enabled - click on the map to set your position");
-    
+
+    if (manualLocationHandler) {
+        manualLocationHandler.destroy();
+        manualLocationHandler = null;
+    }
+
     window.buildingClickEnabled = false;
     console.log("🚫 Building clicks disabled");
-    
+
     showManualLocationOverlay();
-    
+
     manualLocationHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
     
     manualLocationHandler.setInputAction(function(click) {
@@ -407,13 +413,21 @@ window.cancelManualLocationMode = cancelManualLocationMode;
 window.revertToGPSLocation = revertToGPSLocation;
 
 export function isInsideCampus(lat, lon) {
-    // Curtin Bentley campus bounding box
-    const bounds = {
-        minLat: -32.013,
-        maxLat: -31.999,
-        minLon: 115.887,
-        maxLon: 115.902
-    };
-    return lat >= bounds.minLat && lat <= bounds.maxLat &&
-           lon >= bounds.minLon && lon <= bounds.maxLon;
+    const coords = CONFIG.CAMPUS_BOUNDARY.coords;
+    const vertices = [];
+    for (let i = 0; i < coords.length - 2; i += 2) {
+        vertices.push([coords[i + 1], coords[i]]);
+    }
+
+    // Ray casting point-in-polygon
+    let inside = false;
+    for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
+        const [yi, xi] = vertices[i];
+        const [yj, xj] = vertices[j];
+        if (((yi > lat) !== (yj > lat)) &&
+            (lon < (xj - xi) * (lat - yi) / (yj - yi) + xi)) {
+            inside = !inside;
+        }
+    }
+    return inside;
 }

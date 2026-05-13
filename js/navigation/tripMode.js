@@ -1,7 +1,7 @@
 import { viewer } from '../map/viewer.js';
 import { updatePositionDuringNavigation, userLocation } from '../map/userLocation.js';
 import { osmBuildings } from '../map/buildings.js';
-import { updateRouteDisplay } from './pathfinder.js';
+import { updateRouteDisplay, clearRoute } from './pathfinder.js';
 
 // Navigation state
 let isNavigating = false;
@@ -17,6 +17,7 @@ let offRouteTimer = null;
 let smoothLat = null;
 let smoothLon = null;
 let lastClosestIdx = 0;
+let gpsErrorCount = 0;
 
 // Camera follow state
 let isFollowingUser = true;
@@ -41,6 +42,7 @@ export function startTrip(path, destName, destLat, destLon) {
     smoothLat = null;
     smoothLon = null;
     lastClosestIdx = 0;
+    gpsErrorCount = 0;
 
     console.log(`🚀 Starting navigation to ${destName}`);
 
@@ -120,6 +122,7 @@ export function stopTrip() {
     });
 
     hideNavigationUI();
+    clearRoute();
     // Restore normal quality after navigation
     if (osmBuildings) {
         osmBuildings.maximumScreenSpaceError = 16;
@@ -270,6 +273,7 @@ function findClosestRouteIndex(lat, lon) {
 // ===== GPS UPDATE HANDLER =====
 function onPositionUpdate(position) {
     if (!isNavigating) return;
+    gpsErrorCount = 0;
 
     const rawLat = position.coords.latitude;
     const rawLon = position.coords.longitude;
@@ -307,7 +311,15 @@ function onPositionUpdate(position) {
 }
 
 function onPositionError(error) {
+    if (!isNavigating) return;
+    gpsErrorCount++;
     console.error('GPS error during navigation:', error.message);
+
+    if (gpsErrorCount >= 3) {
+        updateInstructionBanner('GPS signal lost', 'Check location settings', '#e74c3c');
+    } else {
+        updateInstructionBanner('Searching for GPS...', '', '#e67e22');
+    }
 }
 
 // ===== CAMERA FOLLOW =====
@@ -420,7 +432,7 @@ function checkOffRoute(minDist) {
                     lastClosestIdx = 0;
                 });
                 offRouteTimer = null;
-            }, 8000);
+            }, 4000);
         }
     } else {
         if (offRouteTimer) {
