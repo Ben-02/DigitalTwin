@@ -6,6 +6,8 @@ let isManualLocation = false;
 let gpsLocation = null;
 let manualLocationHandler = null;
 let locationPermissionDenied = false;
+let pointCollection = null;
+let userPointPrimitive = null;
 
 // Store last destination for route redrawing
 let lastDestination = null;
@@ -80,30 +82,48 @@ export function getUserLocation() {
 }
 
 function showUserLocationMarker() {
-    if (userLocationMarker) {
-        viewer.entities.remove(userLocationMarker);
+    // Initialize collection once
+    if (!pointCollection) {
+        pointCollection = viewer.scene.primitives.add(
+            new Cesium.PointPrimitiveCollection()
+        );
     }
-    
-    const labelText = isManualLocation 
-        ? 'You are here (manual)' 
-        : (userLocation.accuracy 
-            ? `You are here (±${userLocation.accuracy.toFixed(0)}m)` 
-            : 'You are here');
-    
-    userLocationMarker = viewer.entities.add({
-        name: 'Your Location',
+
+    // Remove old point
+    if (userPointPrimitive) {
+        pointCollection.remove(userPointPrimitive);
+    }
+
+    userPointPrimitive = pointCollection.add({
         position: Cesium.Cartesian3.fromDegrees(
             userLocation.longitude,
             userLocation.latitude,
             2
         ),
-        point: {
-            pixelSize: 15,
-            color: isManualLocation ? Cesium.Color.GREEN : Cesium.Color.BLUE,
-            outlineColor: Cesium.Color.WHITE,
-            outlineWidth: 3,
-            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
-        },
+        pixelSize: 15,
+        color: isManualLocation ? Cesium.Color.GREEN : Cesium.Color.BLUE,
+        outlineColor: Cesium.Color.WHITE,
+        outlineWidth: 3,
+        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+    });
+
+    // Keep the label as a separate entity
+    if (userLocationMarker) {
+        viewer.entities.remove(userLocationMarker);
+    }
+
+    const labelText = isManualLocation
+        ? 'You are here (manual)'
+        : (userLocation.accuracy
+            ? `You are here (±${userLocation.accuracy.toFixed(0)}m)`
+            : 'You are here');
+
+    userLocationMarker = viewer.entities.add({
+        position: Cesium.Cartesian3.fromDegrees(
+            userLocation.longitude,
+            userLocation.latitude,
+            2
+        ),
         label: {
             text: labelText,
             font: '14px sans-serif',
@@ -113,12 +133,12 @@ function showUserLocationMarker() {
             style: Cesium.LabelStyle.FILL_AND_OUTLINE,
             verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
             pixelOffset: new Cesium.Cartesian2(0, -25),
-            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+            showBackground: false
         }
     });
-    
-    console.log("✅ User location marker added to map");
-    viewer.scene.requestRender(); 
+
+    viewer.scene.requestRender();
 }
 
 export function enableManualLocationSetting() {
@@ -391,17 +411,19 @@ export function updateUserLocation() {
 }
 
 export function updatePositionDuringNavigation(lat, lon) {
-    userLocation = {
-        ...userLocation,
-        latitude: lat,
-        longitude: lon
-    };
-    
-    if (userLocationMarker) {
-        userLocationMarker.position = new Cesium.ConstantPositionProperty(
-            Cesium.Cartesian3.fromDegrees(lon, lat, 2)
-        );
+    userLocation = { ...userLocation, latitude: lat, longitude: lon };
+
+    // Update PointPrimitive directly - much faster!
+    if (userPointPrimitive) {
+        userPointPrimitive.position = Cesium.Cartesian3.fromDegrees(lon, lat, 2);
     }
+
+    // Hide label during navigation for performance
+    if (userLocationMarker && userLocationMarker.label) {
+        userLocationMarker.label.show = false;
+    }
+
+    viewer.scene.requestRender();
 }
 
 window.enableManualLocationSetting = enableManualLocationSetting;

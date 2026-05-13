@@ -27,12 +27,11 @@ export function initializeViewer() {
     viewer.scene.globe.showGroundAtmosphere = false;
     viewer.scene.globe.enableLighting = false;
 
-    // Mobile: slightly reduce resolution
+    // Mobile: reduce resolution for better performance
     if (window.innerWidth <= 768) {
-        viewer.resolutionScale = 0.85;
+        viewer.resolutionScale = 0.7; // Better performance on mobile
     }
 
-    window.viewer = viewer;
-    console.log("✅ Cesium viewer initialized");
-    return viewer;
+    // Increase tile cache - keeps more tiles in memory during navigation
+    viewer.scene.globe.tileCacheSize = 500;
 }

@@ -119,7 +119,12 @@ export function stopTrip() {
     });
 
     hideNavigationUI();
-
+    // Restore normal quality after navigation
+    if (osmBuildings) {
+        osmBuildings.maximumScreenSpaceError = 16;
+    }
+    viewer.resolutionScale = window.innerWidth <= 768 ? 0.7 : 1.0;
+    viewer.scene.requestRender();
     // Re-expand search panel
     const content = document.getElementById('ui-content');
     const btn = document.getElementById('toggle-btn');
@@ -422,6 +427,12 @@ function onArrived() {
 function updateNavigationUI(userLat, userLon) {
     if (!userLat || !userLon) {
         updateInstructionBanner('Starting navigation...', '', '#2c3e50');
+        // Boost performance during navigation
+        if (osmBuildings) {
+            osmBuildings.maximumScreenSpaceError = 32;
+        }
+        viewer.resolutionScale = 0.5; // Lower resolution during navigation
+        viewer.scene.requestRender();
         updateDistanceBar(0, 0);
         return;
     }
