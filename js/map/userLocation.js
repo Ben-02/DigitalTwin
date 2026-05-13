@@ -4,6 +4,11 @@ import { CONFIG } from '../config.js';
 export let userLocation = null;
 export let userLocationMarker = null;
 let isManualLocation = false;
+
+export function getIsManualLocation() {
+    return isManualLocation;
+}
+
 let gpsLocation = null;
 let manualLocationHandler = null;
 let locationPermissionDenied = false;
@@ -120,7 +125,15 @@ function showUserLocationMarker() {
     viewer.scene.requestRender();
 }
 
-export function enableManualLocationSetting() {
+export async function enableManualLocationSetting() {
+    // Check if there's an active route — setting manual location resets it
+    const { hasActiveRoute, clearRoute } = await import('../navigation/pathfinder.js');
+    if (hasActiveRoute()) {
+        const confirmed = confirm('Setting a new location will clear the current route and trip information. Continue?');
+        if (!confirmed) return;
+        clearRoute(true);
+    }
+
     // If permission was denied, try to re-request GPS first
     if (locationPermissionDenied) {
         console.log("🔄 Re-requesting location permission...");
@@ -244,12 +257,16 @@ export function revertToGPSLocation() {
         alert('No GPS location available');
         return;
     }
-    
+
     console.log("🔄 Reverting to GPS location");
-    
+
     userLocation = { ...gpsLocation };
     isManualLocation = false;
-    
+
+    import('../navigation/pathfinder.js').then(({ getCustomStartPoint, clearCustomStartPoint }) => {
+        if (getCustomStartPoint()) clearCustomStartPoint(true);
+    });
+
     showUserLocationMarker();
     updateLocationButtons();
     
@@ -376,6 +393,11 @@ function updateLocationButtons() {
 
 export function updateUserLocation() {
     isManualLocation = false;
+
+    import('../navigation/pathfinder.js').then(({ getCustomStartPoint, clearCustomStartPoint }) => {
+        if (getCustomStartPoint()) clearCustomStartPoint(true);
+    });
+
     getUserLocation().then(() => {
         updateLocationButtons();
         

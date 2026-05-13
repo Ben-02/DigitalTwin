@@ -10,6 +10,19 @@ window.getDirectionsFromPanel = function() {
     }
 };
 
+window.setStartPointFromPanel = function() {
+    if (pendingDirections) {
+        import('../navigation/pathfinder.js').then(({ setCustomStartPoint }) => {
+            setCustomStartPoint(
+                pendingDirections.lat,
+                pendingDirections.lon,
+                pendingDirections.name
+            );
+        });
+        document.getElementById('info-panel').style.display = 'none';
+    }
+};
+
 export function showBuildingInfo(entity) {
     const props = entity.properties;
 
@@ -79,10 +92,15 @@ export function showBuildingInfoWithDirections(entity, lat, lon, buildingName) {
     pendingDirections = { lat, lon, name: buildingName };
 
     infoHTML += `
-        <div style="margin-top: 12px;">
+        <div style="display:flex; gap:8px; margin-top:12px;">
+            <button id="setStartBtn"
+                onclick="window.setStartPointFromPanel()"
+                style="flex:1; padding:11px; background:#e67e22; color:white; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">
+                📌 Set as Start
+            </button>
             <button id="getDirectionsBtn"
                 onclick="window.getDirectionsFromPanel()"
-                style="width:100%; padding:11px; background:#3498db; color:white; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer;">
+                style="flex:1; padding:11px; background:#3498db; color:white; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">
                 🗺️ Get Directions
             </button>
         </div>
@@ -104,10 +122,15 @@ export function showGenericBuildingInfo(elementId, lat, lon, height) {
         <p><strong>OSM ID:</strong> ${escapeHtml(String(elementId))}</p>
         <p><strong>Height:</strong> ${height}m</p>
         <p><strong>Location:</strong> ${lat.toFixed(5)}, ${lon.toFixed(5)}</p>
-        <div style="margin-top: 12px;">
+        <div style="display:flex; gap:8px; margin-top:12px;">
+            <button id="setStartBtn"
+                onclick="window.setStartPointFromPanel()"
+                style="flex:1; padding:11px; background:#e67e22; color:white; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">
+                📌 Set as Start
+            </button>
             <button id="getDirectionsBtn"
                 onclick="window.getDirectionsFromPanel()"
-                style="width:100%; padding:11px; background:#3498db; color:white; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer;">
+                style="flex:1; padding:11px; background:#3498db; color:white; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">
                 🗺️ Get Directions
             </button>
         </div>
@@ -128,10 +151,15 @@ export function showManualBuildingInfo(data, lat, lon) {
     infoContent.innerHTML = `
         <h3>Building ${escapeHtml(displayNum)}</h3>
         <p><strong>Name:</strong> ${escapeHtml(displayName)}</p>
-        <div style="margin-top: 12px;">
+        <div style="display:flex; gap:8px; margin-top:12px;">
+            <button id="setStartBtn"
+                onclick="window.setStartPointFromPanel()"
+                style="flex:1; padding:11px; background:#e67e22; color:white; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">
+                📌 Set as Start
+            </button>
             <button id="getDirectionsBtn"
                 onclick="window.getDirectionsFromPanel()"
-                style="width:100%; padding:11px; background:#3498db; color:white; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer;">
+                style="flex:1; padding:11px; background:#3498db; color:white; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">
                 🗺️ Get Directions
             </button>
         </div>

@@ -122,7 +122,7 @@ export function stopTrip() {
     });
 
     hideNavigationUI();
-    clearRoute();
+    clearRoute(true);
     // Restore normal quality after navigation
     if (osmBuildings) {
         osmBuildings.maximumScreenSpaceError = 16;
