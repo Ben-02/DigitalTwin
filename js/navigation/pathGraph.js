@@ -1,7 +1,9 @@
 import { pathwayData } from '../data/pathways.js';
 
 let pathwayGraph = null;
-let nodeById = new Map(); // ← O(1) lookup by ID instead of Array.from().find()
+let nodeById = new Map();
+let spatialGrid = null;
+let gridConfig = null;
 
 export function buildPathwayGraph() {
     console.log("🔨 Building pathway graph...");
@@ -13,6 +15,7 @@ export function buildPathwayGraph() {
     
     const nodes = new Map();
     nodeById = new Map();
+    spatialGrid = null;
     const edges = [];
     let nodeIdCounter = 0;
     
@@ -77,27 +80,89 @@ export function buildPathwayGraph() {
         edgeCount: edges.length
     };
     
+    buildSpatialGrid();
     console.log(`✅ Pathway graph built: ${pathwayGraph.nodeCount} nodes, ${pathwayGraph.edgeCount} edges`);
     return pathwayGraph;
 }
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
     const R = 6371e3;
-    const φ1 = lat1 * Math.PI / 180;
-    const φ2 = lat2 * Math.PI / 180;
-    const Δφ = (lat2 - lat1) * Math.PI / 180;
-    const Δλ = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(Δφ/2) ** 2 +
-              Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const toRad = Math.PI / 180;
+    const dLat = (lat2 - lat1) * toRad;
+    const dLon = (lon2 - lon1) * toRad;
+    const cosLat = Math.cos((lat1 + lat2) / 2 * toRad);
+    return R * Math.sqrt(dLat * dLat + dLon * dLon * cosLat * cosLat);
+}
+
+// ===== SPATIAL GRID (O(1) nearest-node lookup) =====
+function buildSpatialGrid() {
+    if (!pathwayGraph) return;
+
+    let minLat = Infinity, maxLat = -Infinity;
+    let minLon = Infinity, maxLon = -Infinity;
+
+    pathwayGraph.nodes.forEach(node => {
+        if (node.latitude < minLat) minLat = node.latitude;
+        if (node.latitude > maxLat) maxLat = node.latitude;
+        if (node.longitude < minLon) minLon = node.longitude;
+        if (node.longitude > maxLon) maxLon = node.longitude;
+    });
+
+    // ~50m cells (at latitude -32°: 0.00045° lat ≈ 50m, 0.00053° lon ≈ 50m)
+    const cellLat = 0.00045;
+    const cellLon = 0.00053;
+    minLat -= cellLat;
+    maxLat += cellLat;
+    minLon -= cellLon;
+    maxLon += cellLon;
+
+    const rows = Math.ceil((maxLat - minLat) / cellLat);
+    const cols = Math.ceil((maxLon - minLon) / cellLon);
+
+    gridConfig = { minLat, minLon, cellLat, cellLon, rows, cols };
+    spatialGrid = new Map();
+
+    pathwayGraph.nodes.forEach(node => {
+        const r = Math.floor((node.latitude - minLat) / cellLat);
+        const c = Math.floor((node.longitude - minLon) / cellLon);
+        const key = r * cols + c;
+        if (!spatialGrid.has(key)) spatialGrid.set(key, []);
+        spatialGrid.get(key).push(node);
+    });
 }
 
 export function findNearestNode(lat, lon) {
     if (!pathwayGraph) return null;
-    
+    if (!spatialGrid) return findNearestNodeBruteForce(lat, lon);
+
+    const row = Math.floor((lat - gridConfig.minLat) / gridConfig.cellLat);
+    const col = Math.floor((lon - gridConfig.minLon) / gridConfig.cellLon);
+
     let nearestNode = null;
     let minDistance = Infinity;
-    
+
+    for (let r = row - 1; r <= row + 1; r++) {
+        for (let c = col - 1; c <= col + 1; c++) {
+            if (r < 0 || r >= gridConfig.rows || c < 0 || c >= gridConfig.cols) continue;
+            const cell = spatialGrid.get(r * gridConfig.cols + c);
+            if (!cell) continue;
+            for (const node of cell) {
+                const distance = calculateDistance(lat, lon, node.latitude, node.longitude);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestNode = node;
+                }
+            }
+        }
+    }
+
+    if (!nearestNode) return findNearestNodeBruteForce(lat, lon);
+    return { node: nearestNode, distance: minDistance };
+}
+
+function findNearestNodeBruteForce(lat, lon) {
+    let nearestNode = null;
+    let minDistance = Infinity;
     pathwayGraph.nodes.forEach(node => {
         const distance = calculateDistance(lat, lon, node.latitude, node.longitude);
         if (distance < minDistance) {
@@ -105,7 +170,6 @@ export function findNearestNode(lat, lon) {
             nearestNode = node;
         }
     });
-    
     return { node: nearestNode, distance: minDistance };
 }
 
@@ -169,37 +233,55 @@ export function findPath(startNode, endNode) {
     return null;
 }
 
-// ===== MIN HEAP (Priority Queue for A*) =====
-// O(log n) push/pop vs O(n) iteration through Set
+// ===== INDEXED MIN HEAP (supports decrease-key, no duplicate entries) =====
 class MinHeap {
-    constructor() { this.heap = []; }
-    
+    constructor() {
+        this.heap = [];
+        this.pos = new Map();
+    }
+
     push(item) {
+        const idx = this.pos.get(item.id);
+        if (idx !== undefined) {
+            if (item.f >= this.heap[idx].f) return;
+            this.heap[idx] = item;
+            this._bubbleUp(idx);
+            return;
+        }
+        this.pos.set(item.id, this.heap.length);
         this.heap.push(item);
         this._bubbleUp(this.heap.length - 1);
     }
-    
+
     pop() {
         const top = this.heap[0];
+        this.pos.delete(top.id);
         const last = this.heap.pop();
         if (this.heap.length > 0) {
             this.heap[0] = last;
+            this.pos.set(last.id, 0);
             this._sinkDown(0);
         }
         return top;
     }
-    
+
     isEmpty() { return this.heap.length === 0; }
-    
+
+    _swap(i, j) {
+        this.pos.set(this.heap[i].id, j);
+        this.pos.set(this.heap[j].id, i);
+        [this.heap[i], this.heap[j]] = [this.heap[j], this.heap[i]];
+    }
+
     _bubbleUp(i) {
         while (i > 0) {
             const parent = Math.floor((i - 1) / 2);
             if (this.heap[parent].f <= this.heap[i].f) break;
-            [this.heap[parent], this.heap[i]] = [this.heap[i], this.heap[parent]];
+            this._swap(parent, i);
             i = parent;
         }
     }
-    
+
     _sinkDown(i) {
         const n = this.heap.length;
         while (true) {
@@ -209,7 +291,7 @@ class MinHeap {
             if (left < n && this.heap[left].f < this.heap[smallest].f) smallest = left;
             if (right < n && this.heap[right].f < this.heap[smallest].f) smallest = right;
             if (smallest === i) break;
-            [this.heap[smallest], this.heap[i]] = [this.heap[i], this.heap[smallest]];
+            this._swap(smallest, i);
             i = smallest;
         }
     }

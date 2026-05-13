@@ -1,7 +1,7 @@
 import { viewer } from '../map/viewer.js';
 import { userLocation } from '../map/userLocation.js';
 import { setLastDestination, clearLastDestination } from '../map/userLocation.js';
-import { findNearestNode, findPath, getPathwayGraph, getNodeById } from './pathGraph.js';
+import { findNearestNode, findPath, getNodeById } from './pathGraph.js';
 
 let currentRoutePath = [];
 let currentDestination = { lat: null, lon: null, name: null };
@@ -14,17 +14,11 @@ let currentRoute = null;
 // Calculate distance between two points
 function calculateDistance(lat1, lon1, lat2, lon2) {
     const R = 6371e3;
-    const φ1 = lat1 * Math.PI / 180;
-    const φ2 = lat2 * Math.PI / 180;
-    const Δφ = (lat2 - lat1) * Math.PI / 180;
-    const Δλ = (lon2 - lon1) * Math.PI / 180;
-
-    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ/2) * Math.sin(Δλ/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-    return R * c;
+    const toRad = Math.PI / 180;
+    const dLat = (lat2 - lat1) * toRad;
+    const dLon = (lon2 - lon1) * toRad;
+    const cosLat = Math.cos((lat1 + lat2) / 2 * toRad);
+    return R * Math.sqrt(dLat * dLat + dLon * dLon * cosLat * cosLat);
 }
 
 function zoomToShowRoute(targetLat, targetLon) {
@@ -86,7 +80,6 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
     }
     
     // Convert path (node IDs) to coordinates
-    const graph = getPathwayGraph();
     const pathCoordinates = [];
     
     // Add start point (user location)

@@ -15,6 +15,7 @@ let currentHeading = 0;
 let offRouteTimer = null;
 let smoothLat = null;
 let smoothLon = null;
+let lastClosestIdx = 0;
 
 // Camera follow state
 let isFollowingUser = true;
@@ -38,6 +39,7 @@ export function startTrip(path, destName, destLat, destLon) {
     previousLon = null;
     smoothLat = null;
     smoothLon = null;
+    lastClosestIdx = 0;
 
     console.log(`🚀 Starting navigation to ${destName}`);
 
@@ -231,6 +233,34 @@ function recenterCamera() {
     }
 }
 
+// ===== CLOSEST ROUTE INDEX (computed once per GPS tick) =====
+function findClosestRouteIndex(lat, lon) {
+    if (!routePath || routePath.length === 0) return { idx: 0, dist: Infinity };
+
+    const WINDOW = 15;
+    const start = Math.max(0, lastClosestIdx - WINDOW);
+    const end = Math.min(routePath.length, lastClosestIdx + WINDOW);
+
+    let bestIdx = start;
+    let bestDist = Infinity;
+
+    for (let i = start; i < end; i++) {
+        const d = haversineDistance(lat, lon, routePath[i].lat, routePath[i].lon);
+        if (d < bestDist) { bestDist = d; bestIdx = i; }
+    }
+
+    // Fallback to full scan if window result seems off-route
+    if (bestDist > 50) {
+        for (let i = 0; i < routePath.length; i++) {
+            const d = haversineDistance(lat, lon, routePath[i].lat, routePath[i].lon);
+            if (d < bestDist) { bestDist = d; bestIdx = i; }
+        }
+    }
+
+    lastClosestIdx = bestIdx;
+    return { idx: bestIdx, dist: bestDist };
+}
+
 // ===== GPS UPDATE HANDLER =====
 function onPositionUpdate(position) {
     if (!isNavigating) return;
@@ -255,8 +285,9 @@ function onPositionUpdate(position) {
         zoomToUser(lat, lon, currentHeading);
     }
 
-    updateNavigationUI(lat, lon);
-    checkOffRoute(lat, lon);
+    const closest = findClosestRouteIndex(lat, lon);
+    updateNavigationUI(lat, lon, closest);
+    checkOffRoute(closest.dist);
 
     const distToDest = haversineDistance(lat, lon, destinationLat, destinationLon);
     if (distToDest < 20) {
@@ -311,26 +342,17 @@ function calculateBearing(lat1, lon1, lat2, lon2) {
 // ===== DISTANCE CALCULATION =====
 function haversineDistance(lat1, lon1, lat2, lon2) {
     const R = 6371e3;
-    const φ1 = lat1 * Math.PI / 180;
-    const φ2 = lat2 * Math.PI / 180;
-    const Δφ = (lat2 - lat1) * Math.PI / 180;
-    const Δλ = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(Δφ/2) ** 2 +
-              Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const toRad = Math.PI / 180;
+    const dLat = (lat2 - lat1) * toRad;
+    const dLon = (lon2 - lon1) * toRad;
+    const cosLat = Math.cos((lat1 + lat2) / 2 * toRad);
+    return R * Math.sqrt(dLat * dLat + dLon * dLon * cosLat * cosLat);
 }
 
 // ===== TURN-BY-TURN INSTRUCTIONS =====
-function getNextInstruction(userLat, userLon) {
+function getNextInstruction(userLat, userLon, closestIdx) {
     if (!routePath || routePath.length < 2) {
         return { text: `Head to ${destinationName}`, distance: 0 };
-    }
-
-    let closestIdx = 0;
-    let minDist = Infinity;
-    for (let i = 0; i < routePath.length; i++) {
-        const d = haversineDistance(userLat, userLon, routePath[i].lat, routePath[i].lon);
-        if (d < minDist) { minDist = d; closestIdx = i; }
     }
 
     for (let i = closestIdx + 1; i < routePath.length - 1; i++) {
@@ -362,17 +384,10 @@ function getTurnAngle(lat1, lon1, lat2, lon2, lat3, lon3) {
 }
 
 // ===== REMAINING DISTANCE =====
-function getRemainingDistance(userLat, userLon) {
+function getRemainingDistance(closestIdx, closestDist) {
     if (!routePath || routePath.length === 0) return 0;
 
-    let closestIdx = 0;
-    let minDist = Infinity;
-    for (let i = 0; i < routePath.length; i++) {
-        const d = haversineDistance(userLat, userLon, routePath[i].lat, routePath[i].lon);
-        if (d < minDist) { minDist = d; closestIdx = i; }
-    }
-
-    let remaining = minDist;
+    let remaining = closestDist;
     for (let i = closestIdx; i < routePath.length - 1; i++) {
         remaining += haversineDistance(
             routePath[i].lat, routePath[i].lon,
@@ -384,14 +399,8 @@ function getRemainingDistance(userLat, userLon) {
 }
 
 // ===== OFF ROUTE DETECTION =====
-function checkOffRoute(lat, lon) {
+function checkOffRoute(minDist) {
     if (!routePath || routePath.length === 0) return;
-
-    let minDist = Infinity;
-    for (const point of routePath) {
-        const d = haversineDistance(lat, lon, point.lat, point.lon);
-        if (d < minDist) minDist = d;
-    }
 
     if (minDist > 35) {
         if (!offRouteTimer) {
@@ -401,6 +410,7 @@ function checkOffRoute(lat, lon) {
                 import('./pathfinder.js').then(({ drawRouteTo, getCurrentRoutePath }) => {
                     drawRouteTo(destinationLat, destinationLon, destinationName);
                     routePath = getCurrentRoutePath();
+                    lastClosestIdx = 0;
                 });
                 offRouteTimer = null;
             }, 8000);
@@ -424,7 +434,7 @@ function onArrived() {
 }
 
 // ===== UI UPDATES =====
-function updateNavigationUI(userLat, userLon) {
+function updateNavigationUI(userLat, userLon, closest) {
     if (!userLat || !userLon) {
         updateInstructionBanner('Starting navigation...', '', '#2c3e50');
         // Boost performance during navigation
@@ -437,8 +447,12 @@ function updateNavigationUI(userLat, userLon) {
         return;
     }
 
-    const instruction = getNextInstruction(userLat, userLon);
-    const remaining = getRemainingDistance(userLat, userLon);
+    if (!closest) {
+        closest = findClosestRouteIndex(userLat, userLon);
+    }
+
+    const instruction = getNextInstruction(userLat, userLon, closest.idx);
+    const remaining = getRemainingDistance(closest.idx, closest.dist);
     const mins = Math.ceil(remaining / 80);
 
     updateInstructionBanner(
