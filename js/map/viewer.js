@@ -44,4 +44,14 @@ export function initializeViewer() {
 
     // Increase tile cache - keeps more tiles in memory during navigation
     viewer.scene.globe.tileCacheSize = 500;
+
+    // Start camera at campus so there's no globe-spinning on load
+    viewer.camera.setView({
+        destination: Cesium.Cartesian3.fromDegrees(115.8924, -32.0205, 3150),
+        orientation: {
+            heading: 0,
+            pitch: Cesium.Math.toRadians(-60),
+            roll: 0
+        }
+    });
 }

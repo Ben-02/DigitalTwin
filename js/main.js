@@ -7,9 +7,7 @@ import { buildPathwayGraph } from './navigation/pathGraph.js';
 import { getUserLocation } from './map/userLocation.js';
 import { enableBuildingClick } from './ui/events.js';
 import { searchBuilding } from './ui/search.js';
-import { flyToCampus } from './map/camera.js';
 import { closeInfoPanel } from './ui/infoPanel.js';
-import { drawRouteTo } from './navigation/pathfinder.js';
 
 async function initializeApp() {
     try {
@@ -35,17 +33,25 @@ async function initializeApp() {
         await gpsPromise;
 
         drawCampusBoundary();
-        flyToCampus();
         enableBuildingClick();
         setupUIEventListeners();
 
         scheduleRender();
         import('./navigation/tripMode.js').catch(() => {});
+        hideLoadingScreen();
         console.log("🎉 Campus loaded successfully!");
-        
+
     } catch (error) {
         console.error("❌ Error loading campus:", error);
+        hideLoadingScreen();
     }
+}
+
+function hideLoadingScreen() {
+    const overlay = document.getElementById('loading-overlay');
+    if (!overlay) return;
+    overlay.classList.add('fade-out');
+    setTimeout(() => overlay.remove(), 500);
 }
 
 function setupUIEventListeners() {
