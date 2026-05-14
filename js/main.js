@@ -14,21 +14,26 @@ import { drawRouteTo } from './navigation/pathfinder.js';
 async function initializeApp() {
     try {
         console.log("🚀 Initializing app...");
-        
+
         initializeViewer();
-        await loadOSMBuildings();
-        await loadCampusMetadata();
-        
+
+        // Fire GPS request early — it runs in parallel with data loading
+        const gpsPromise = getUserLocation();
+
+        // Load buildings tileset and campus metadata in parallel
+        await Promise.all([loadOSMBuildings(), loadCampusMetadata()]);
+
         const pathways = analyzePathwayData();
         console.log(`Pathways analyzed: ${pathways.length}`);
-        
+
         const graph = buildPathwayGraph();
         if (!graph) {
             console.error("⚠️ Failed to build pathway graph");
         }
-        
-        await getUserLocation();
-        
+
+        // Wait for GPS if it hasn't resolved yet
+        await gpsPromise;
+
         drawCampusBoundary();
         flyToCampus();
         enableBuildingClick();
