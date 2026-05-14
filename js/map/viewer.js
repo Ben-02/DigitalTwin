@@ -2,6 +2,16 @@ import { CONFIG } from '../config.js';
 
 export let viewer;
 
+let renderQueued = false;
+export function scheduleRender() {
+    if (renderQueued) return;
+    renderQueued = true;
+    requestAnimationFrame(() => {
+        renderQueued = false;
+        if (viewer) viewer.scene.requestRender();
+    });
+}
+
 export function initializeViewer() {
     Cesium.Ion.defaultAccessToken = CONFIG.CESIUM_TOKEN;
     

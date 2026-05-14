@@ -1,4 +1,4 @@
-import { viewer } from '../map/viewer.js';
+import { viewer, scheduleRender } from '../map/viewer.js';
 import { updatePositionDuringNavigation, userLocation } from '../map/userLocation.js';
 import { osmBuildings } from '../map/buildings.js';
 import { updateRouteDisplay, clearRoute } from './pathfinder.js';
@@ -144,7 +144,7 @@ export function stopTrip() {
         osmBuildings.maximumScreenSpaceError = 16;
     }
     viewer.resolutionScale = window.innerWidth <= 768 ? 0.7 : 1.0;
-    viewer.scene.requestRender();
+    scheduleRender();
     // Re-expand search panel
     const content = document.getElementById('ui-content');
     const btn = document.getElementById('toggle-btn');
@@ -156,7 +156,7 @@ export function stopTrip() {
     navSubText = null;
     navDistEl = null;
     navTimeEl = null;
-    viewer.scene.requestRender();
+    scheduleRender();
     console.log('🛑 Navigation stopped');
 }
 
@@ -185,7 +185,7 @@ function onInteractionStart() {
     // Increase LOD error = lower quality = faster rendering during interaction
     if (osmBuildings) {
         osmBuildings.maximumScreenSpaceError = 64;
-        viewer.scene.requestRender();
+        scheduleRender();
     }
 
     showRecenterButton();
@@ -205,7 +205,7 @@ function onInteractionEnd() {
         userInteracting = false;
         if (osmBuildings) {
             osmBuildings.maximumScreenSpaceError = 16;
-            viewer.scene.requestRender();
+            scheduleRender();
         }
     }, 500);
 }
@@ -259,7 +259,7 @@ function recenterCamera() {
     });
     if (osmBuildings) {
         osmBuildings.maximumScreenSpaceError = 16;
-        viewer.scene.requestRender();
+        scheduleRender();
     }
 }
 
@@ -353,7 +353,7 @@ function zoomToUser(lat, lon, heading) {
             roll: 0
         }
     });
-    viewer.scene.requestRender();
+    scheduleRender();
 }
 
 // ===== GPS SMOOTHING =====
@@ -512,7 +512,7 @@ function updateNavigationUI(userLat, userLon, closest) {
             osmBuildings.maximumScreenSpaceError = 32;
         }
         viewer.resolutionScale = 0.5; // Lower resolution during navigation
-        viewer.scene.requestRender();
+        scheduleRender();
         updateDistanceBar(0, 0);
         return;
     }

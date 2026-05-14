@@ -1,4 +1,4 @@
-import { viewer } from './viewer.js';
+import { viewer, scheduleRender } from './viewer.js';
 import { CONFIG } from '../config.js';
 
 export let userLocation = null;
@@ -122,7 +122,7 @@ function showUserLocationMarker() {
         }
     });
 
-    viewer.scene.requestRender();
+    scheduleRender();
 }
 
 export async function enableManualLocationSetting() {
@@ -426,7 +426,7 @@ export function updatePositionDuringNavigation(lat, lon) {
         }
     }
 
-    viewer.scene.requestRender();
+    scheduleRender();
 }
 
 window.enableManualLocationSetting = enableManualLocationSetting;

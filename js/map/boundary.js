@@ -1,4 +1,4 @@
-import { viewer } from './viewer.js';
+import { viewer, scheduleRender } from './viewer.js';
 import { CONFIG } from '../config.js';
 
 export function drawCampusBoundary() {
@@ -14,6 +14,6 @@ export function drawCampusBoundary() {
         }
     });
     
-    viewer.scene.requestRender();
+    scheduleRender();
     console.log("✅ Campus boundary drawn");
 }

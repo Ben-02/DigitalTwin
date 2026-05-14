@@ -1,4 +1,4 @@
-import { initializeViewer, viewer } from './map/viewer.js';
+import { initializeViewer, scheduleRender } from './map/viewer.js';
 import { loadOSMBuildings, removeHighlight } from './map/buildings.js';
 import { drawCampusBoundary } from './map/boundary.js';
 import { loadCampusMetadata } from './data/metadata.js';
@@ -34,7 +34,7 @@ async function initializeApp() {
         enableBuildingClick();
         setupUIEventListeners();
 
-        viewer.scene.requestRender();
+        scheduleRender();
         import('./navigation/tripMode.js').catch(() => {});
         console.log("🎉 Campus loaded successfully!");
         

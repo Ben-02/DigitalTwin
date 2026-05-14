@@ -1,4 +1,4 @@
-import { viewer } from '../map/viewer.js';
+import { viewer, scheduleRender } from '../map/viewer.js';
 import { userLocation } from '../map/userLocation.js';
 import { setLastDestination, clearLastDestination } from '../map/userLocation.js';
 import { findNearestNode, findPath, getNodeById } from './pathGraph.js';
@@ -19,7 +19,7 @@ export function setCustomStartPoint(lat, lon, name) {
         currentRoutePath = [];
         currentDestination = { lat: null, lon: null, name: null };
         document.getElementById('info-panel').style.display = 'none';
-        viewer.scene.requestRender();
+        scheduleRender();
     }
     customStartPoint = { latitude: lat, longitude: lon, name };
     console.log(`📌 Custom start set: ${name}`);
@@ -44,7 +44,7 @@ export function clearCustomStartPoint(skipConfirm = false) {
         currentDestination = { lat: null, lon: null, name: null };
         document.getElementById('info-panel').style.display = 'none';
         expandSearchPanel();
-        viewer.scene.requestRender();
+        scheduleRender();
     }
     console.log("🗑️ Custom start cleared");
 }
@@ -198,7 +198,7 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
     
     zoomToShowRoute(startPoint.latitude, startPoint.longitude, targetLat, targetLon);
     showRouteInfo(totalDistance, targetName, usingCustomStart);
-    viewer.scene.requestRender();
+    scheduleRender();
     if (!usingCustomStart) {
         setTimeout(() => {
             import('./tripMode.js').catch(() => {});
@@ -331,7 +331,7 @@ export function clearRoute(skipConfirm = false) {
     currentDestination = { lat: null, lon: null, name: null };
     document.getElementById('info-panel').style.display = 'none';
     expandSearchPanel();
-    viewer.scene.requestRender();
+    scheduleRender();
     console.log("🗑️ Route cleared");
 }
 
@@ -344,7 +344,7 @@ export function updateRouteDisplay(userLat, userLon, fromIndex) {
     }
 
     currentRoute.polyline.positions = Cesium.Cartesian3.fromDegreesArray(coords);
-    viewer.scene.requestRender();
+    scheduleRender();
 }
 
 window.clearRoute = clearRoute;
@@ -471,7 +471,7 @@ window.clearEndPoint = function() {
     currentRoutePath = [];
     currentDestination = { lat: null, lon: null, name: null };
     document.getElementById('info-panel').style.display = 'none';
-    viewer.scene.requestRender();
+    scheduleRender();
 
     if (!customStartPoint) {
         hideStartBanner();
