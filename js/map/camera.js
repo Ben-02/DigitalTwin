@@ -25,8 +25,8 @@ export function flyToCampus() {
     viewer.camera.flyTo({
         destination: Cesium.Cartesian3.fromDegrees(
             115.8924,   // Slightly west to center campus
-            -32.0205,   // Campus center latitude
-            3150        // Higher altitude to see full campus
+            -32.0215,   // Campus center latitude
+            3400        // Higher altitude to see full campus
         ),
         orientation: {
             heading: Cesium.Math.toRadians(0),
