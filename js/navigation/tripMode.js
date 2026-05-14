@@ -7,6 +7,7 @@ import { updateRouteDisplay, clearRoute } from './pathfinder.js';
 let isNavigating = false;
 let watchId = null;
 let routePath = [];
+let cumulativeDistances = [];
 let destinationName = '';
 let destinationLat = null;
 let destinationLon = null;
@@ -34,6 +35,7 @@ export function startTrip(path, destName, destLat, destLon) {
     isNavigating = true;
     isFollowingUser = true;
     routePath = path;
+    buildCumulativeDistances();
     destinationName = destName;
     destinationLat = destLat;
     destinationLon = destLon;
@@ -402,19 +404,34 @@ function getTurnAngle(lat1, lon1, lat2, lon2, lat3, lon3) {
     return angle;
 }
 
+// ===== CUMULATIVE DISTANCE PRE-COMPUTATION =====
+function buildCumulativeDistances() {
+    cumulativeDistances = [0];
+    for (let i = 0; i < routePath.length - 1; i++) {
+        cumulativeDistances.push(
+            cumulativeDistances[i] + haversineDistance(
+                routePath[i].lat, routePath[i].lon,
+                routePath[i+1].lat, routePath[i+1].lon
+            )
+        );
+    }
+}
+
 // ===== REMAINING DISTANCE =====
 function getRemainingDistance(closestIdx, userLat, userLon) {
     if (!routePath || routePath.length === 0) return 0;
 
-    let remaining = 0;
-
     if (closestIdx < routePath.length - 1) {
+        const totalRoute = cumulativeDistances[cumulativeDistances.length - 1];
+        const distToClosest = cumulativeDistances[closestIdx];
+
+        // Project user onto current segment for sub-segment accuracy
         const A = routePath[closestIdx];
         const B = routePath[closestIdx + 1];
         const segLen = haversineDistance(A.lat, A.lon, B.lat, B.lon);
+        let segProgress = 0;
 
         if (segLen > 0) {
-            // Project user onto segment A→B
             const toRad = Math.PI / 180;
             const cosLat = Math.cos((A.lat + B.lat) / 2 * toRad);
             const ax = (userLon - A.lon) * cosLat;
@@ -422,20 +439,13 @@ function getRemainingDistance(closestIdx, userLat, userLon) {
             const bx = (B.lon - A.lon) * cosLat;
             const by = B.lat - A.lat;
             const t = Math.max(0, Math.min(1, (ax * bx + ay * by) / (bx * bx + by * by)));
-            remaining = segLen * (1 - t);
+            segProgress = segLen * t;
         }
 
-        for (let i = closestIdx + 1; i < routePath.length - 1; i++) {
-            remaining += haversineDistance(
-                routePath[i].lat, routePath[i].lon,
-                routePath[i+1].lat, routePath[i+1].lon
-            );
-        }
-    } else {
-        remaining = haversineDistance(userLat, userLon, destinationLat, destinationLon);
+        return Math.round(totalRoute - distToClosest - segProgress);
     }
 
-    return Math.round(remaining);
+    return Math.round(haversineDistance(userLat, userLon, destinationLat, destinationLon));
 }
 
 // ===== OFF ROUTE DETECTION =====
@@ -450,6 +460,7 @@ function checkOffRoute(minDist) {
                 import('./pathfinder.js').then(({ drawRouteTo, getCurrentRoutePath }) => {
                     drawRouteTo(destinationLat, destinationLon, destinationName);
                     routePath = getCurrentRoutePath();
+                    buildCumulativeDistances();
                     lastClosestIdx = 0;
                 });
                 offRouteTimer = null;
