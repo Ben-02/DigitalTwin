@@ -47,7 +47,7 @@ export function initializeViewer() {
 
     // Start camera at campus so there's no globe-spinning on load
     viewer.camera.setView({
-        destination: Cesium.Cartesian3.fromDegrees(115.8924, -32.0205, 3150),
+        destination: Cesium.Cartesian3.fromDegrees(115.8924, -32.0215, 3400),
         orientation: {
             heading: 0,
             pitch: Cesium.Math.toRadians(-60),
