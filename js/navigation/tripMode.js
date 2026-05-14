@@ -25,6 +25,13 @@ let isFollowingUser = true;
 let userInteracting = false;
 let interactionTimer = null;
 
+// Cached DOM elements (set once in startTrip)
+let navBanner = null;
+let navMainText = null;
+let navSubText = null;
+let navDistEl = null;
+let navTimeEl = null;
+
 // ===== START NAVIGATION =====
 export function startTrip(path, destName, destLat, destLon) {
     if (!path || path.length === 0) {
@@ -45,6 +52,13 @@ export function startTrip(path, destName, destLat, destLon) {
     smoothLon = null;
     lastClosestIdx = 0;
     gpsErrorCount = 0;
+
+    // Cache DOM elements for frequent updates
+    navBanner = document.getElementById('nav-instruction-banner');
+    navMainText = document.getElementById('nav-main-instruction');
+    navSubText = document.getElementById('nav-sub-instruction');
+    navDistEl = document.getElementById('nav-remaining-distance');
+    navTimeEl = document.getElementById('nav-remaining-time');
 
     console.log(`🚀 Starting navigation to ${destName}`);
 
@@ -137,6 +151,11 @@ export function stopTrip() {
     if (content) content.style.display = 'block';
     if (btn) btn.textContent = '▼';
 
+    navBanner = null;
+    navMainText = null;
+    navSubText = null;
+    navDistEl = null;
+    navTimeEl = null;
     viewer.scene.requestRender();
     console.log('🛑 Navigation stopped');
 }
@@ -514,36 +533,30 @@ function updateNavigationUI(userLat, userLon, closest) {
 }
 
 function updateInstructionBanner(mainText, subText = '', bgColor = '#2c3e50') {
-    const banner = document.getElementById('nav-instruction-banner');
-    if (!banner) return;
-    banner.style.background = bgColor;
-    document.getElementById('nav-main-instruction').textContent = mainText;
-    const sub = document.getElementById('nav-sub-instruction');
-    if (sub) sub.textContent = subText;
+    if (!navBanner) return;
+    navBanner.style.background = bgColor;
+    if (navMainText) navMainText.textContent = mainText;
+    if (navSubText) navSubText.textContent = subText;
 }
 
 function updateDistanceBar(remaining, mins) {
-    const distEl = document.getElementById('nav-remaining-distance');
-    const timeEl = document.getElementById('nav-remaining-time');
-    if (distEl) distEl.textContent = remaining >= 1000
+    if (navDistEl) navDistEl.textContent = remaining >= 1000
         ? `${(remaining/1000).toFixed(1)}km`
         : `${remaining}m`;
-    if (timeEl) timeEl.textContent = `~${mins} min${mins !== 1 ? 's' : ''}`;
+    if (navTimeEl) navTimeEl.textContent = `~${mins} min${mins !== 1 ? 's' : ''}`;
 }
 
 function showNavigationUI() {
-    const banner = document.getElementById('nav-instruction-banner');
+    if (navBanner) navBanner.style.display = 'flex';
     const bar = document.getElementById('nav-bottom-bar');
-    const infoPanel = document.getElementById('info-panel');
-    if (banner) banner.style.display = 'flex';
     if (bar) bar.style.display = 'flex';
+    const infoPanel = document.getElementById('info-panel');
     if (infoPanel) infoPanel.style.display = 'none';
 }
 
 function hideNavigationUI() {
-    const banner = document.getElementById('nav-instruction-banner');
+    if (navBanner) navBanner.style.display = 'none';
     const bar = document.getElementById('nav-bottom-bar');
-    if (banner) banner.style.display = 'none';
     if (bar) bar.style.display = 'none';
 }
 
