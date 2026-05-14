@@ -178,9 +178,8 @@ html, body, #cesiumContainer {
   color: #555;
 }
 
-/* Clear route button inside info panel */
+/* Default button style inside info panel (single-button rows) */
 #info-panel button {
-  margin-top: 10px;
   padding: 10px 20px;
   background: #ff6600;
   color: white;
@@ -189,7 +188,6 @@ html, body, #cesiumContainer {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  width: 100%;
 }
 
 #info-panel button:hover {
@@ -216,36 +214,7 @@ html, body, #cesiumContainer {
   color: #ff6600 !important;
 }
 
-/* ===== DESKTOP OVERRIDES ===== */
-@media (min-width: 768px) {
-  #ui-overlay {
-    top: 20px;
-    left: 20px;
-    right: auto;
-    width: 320px;
-  }
-
-  #info-panel {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    bottom: auto;
-    left: auto;
-    width: 320px;
-    border-radius: 12px;
-    max-height: 80vh;
-    padding: 20px;
-  }
-
-  #info-handle {
-    display: none;
-  }
-  
-  #setLocationBtn, #refreshGpsBtn {
-    white-space: nowrap;
-  }
-
-  /* ===== NAVIGATION MODE ===== */
+/* ===== NAVIGATION MODE ===== */
 #nav-instruction-banner {
     position: fixed;
     top: 0;
@@ -322,4 +291,32 @@ html, body, #cesiumContainer {
     background: #c0392b !important;
 }
 
+/* ===== DESKTOP OVERRIDES ===== */
+@media (min-width: 768px) {
+  #ui-overlay {
+    top: 20px;
+    left: 20px;
+    right: auto;
+    width: 320px;
+  }
+
+  #info-panel {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    bottom: auto;
+    left: auto;
+    width: 320px;
+    border-radius: 12px;
+    max-height: 80vh;
+    padding: 20px;
+  }
+
+  #info-handle {
+    display: none;
+  }
+
+  #setLocationBtn, #refreshGpsBtn {
+    white-space: nowrap;
+  }
 }
