@@ -67,6 +67,12 @@
     const isHidden = content.style.display === 'none';
     content.style.display = isHidden ? 'block' : 'none';
     btn.textContent = isHidden ? '▼' : '▲';
+    if (isHidden) {
+      const sr = document.getElementById('search-row');
+      const ls = document.getElementById('location-section');
+      if (sr) sr.style.display = '';
+      if (ls) ls.style.display = '';
+    }
   }
 </script>
 </body>

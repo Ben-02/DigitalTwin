@@ -43,6 +43,7 @@ export function clearCustomStartPoint(skipConfirm = false) {
         currentRoutePath = [];
         currentDestination = { lat: null, lon: null, name: null };
         document.getElementById('info-panel').style.display = 'none';
+        expandSearchPanel();
         viewer.scene.requestRender();
     }
     console.log("🗑️ Custom start cleared");
@@ -177,6 +178,7 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
         showStartBanner('Your Location');
     }
     showEndBanner(targetName);
+    collapseSearchPanel();
 
     // Calculate total distance
     let totalDistance = startResult.distance + endResult.distance;
@@ -235,6 +237,7 @@ function drawDirectRoute(targetLat, targetLon, targetName) {
         showStartBanner('Your Location');
     }
     showEndBanner(targetName);
+    collapseSearchPanel();
 
     const distance = calculateDistance(
         startPoint.latitude, startPoint.longitude,
@@ -263,28 +266,28 @@ function showRouteInfo(distance, targetName, usingCustomStart = false) {
 
         if (usingCustomStart) {
             startTripButton = `<button disabled
-                style="flex:1; padding:11px; background:#aaa; color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:not-allowed;"
+                style="flex:1; padding:10px; background:#aaa; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:not-allowed;"
                 title="Start Trip is not available for building-to-building routes">
                 📍 Building-to-building
                </button>`;
-            infoMessage = `<p style="color:#2980b9; font-size:12px;">ℹ️ Showing route between buildings. Start Trip requires your live GPS location.</p>`;
+            infoMessage = `<p style="color:#2980b9; font-size:11px; margin:4px 0;">ℹ️ Start Trip requires live GPS location.</p>`;
         } else if (manualLocation) {
             startTripButton = `<button disabled
-                style="flex:1; padding:11px; background:#aaa; color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:not-allowed;"
+                style="flex:1; padding:10px; background:#aaa; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:not-allowed;"
                 title="Start Trip requires real-time GPS tracking">
                 📍 Requires GPS
                </button>`;
-            infoMessage = `<p style="color:#e67e22; font-size:12px;">ℹ️ Start Trip requires GPS. Use "Use GPS" to enable navigation.</p>`;
+            infoMessage = `<p style="color:#e67e22; font-size:11px; margin:4px 0;">ℹ️ Start Trip requires GPS. Use "Use GPS" to enable.</p>`;
         } else if (!onCampus) {
             startTripButton = `<button disabled
-                style="flex:1; padding:11px; background:#aaa; color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:not-allowed;"
+                style="flex:1; padding:10px; background:#aaa; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:not-allowed;"
                 title="You must be on campus to start navigation">
                 📍 Not on campus
                </button>`;
-            infoMessage = `<p style="color:#e74c3c; font-size:12px;">⚠️ You must be on Curtin Bentley campus to use navigation.</p>`;
+            infoMessage = `<p style="color:#e74c3c; font-size:11px; margin:4px 0;">⚠️ Must be on campus to start navigation.</p>`;
         } else {
             startTripButton = `<button id="startTripBtn" onclick="window.startTripFromRoute()"
-                style="flex:1; padding:11px; background:#27ae60; color:white; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer;">
+                style="flex:1; padding:10px; background:#27ae60; color:white; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">
                 ▶ Start Trip
                </button>`;
         }
@@ -294,15 +297,13 @@ function showRouteInfo(distance, targetName, usingCustomStart = false) {
             : `🗺️ Route to ${targetName}`;
 
         infoContent.innerHTML = `
-            <h3>${routeLabel}</h3>
-            <p><strong>Distance:</strong> ${distance.toFixed(0)} meters</p>
-            <p><strong>Walking Time:</strong> ~${walkingTime} minute${walkingTime > 1 ? 's' : ''}</p>
-            <p><em>Blue line follows campus pathways.</em></p>
+            <h3 style="margin:8px 0 6px; font-size:16px;">${routeLabel}</h3>
+            <p style="margin:4px 0; font-size:13px;"><strong>${distance.toFixed(0)}m</strong> · ~${walkingTime} min walk</p>
             ${infoMessage}
-            <div style="display:flex; gap:8px; margin-top:12px;">
+            <div style="display:flex; gap:8px; margin-top:8px;">
                 ${startTripButton}
                 <button onclick="clearRoute()"
-                    style="flex:1; padding:11px; background:#ff6600; color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;">
+                    style="flex:1; padding:10px; background:#ff6600; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
                     Clear
                 </button>
             </div>
@@ -329,6 +330,7 @@ export function clearRoute(skipConfirm = false) {
     currentRoutePath = [];
     currentDestination = { lat: null, lon: null, name: null };
     document.getElementById('info-panel').style.display = 'none';
+    expandSearchPanel();
     viewer.scene.requestRender();
     console.log("🗑️ Route cleared");
 }
@@ -473,9 +475,24 @@ window.clearEndPoint = function() {
 
     if (!customStartPoint) {
         hideStartBanner();
+        expandSearchPanel();
     }
     console.log("🗑️ End point cleared");
 };
+
+function collapseSearchPanel() {
+    const searchRow = document.getElementById('search-row');
+    const locationSection = document.getElementById('location-section');
+    if (searchRow) searchRow.style.display = 'none';
+    if (locationSection) locationSection.style.display = 'none';
+}
+
+function expandSearchPanel() {
+    const searchRow = document.getElementById('search-row');
+    const locationSection = document.getElementById('location-section');
+    if (searchRow) searchRow.style.display = '';
+    if (locationSection) locationSection.style.display = '';
+}
 
 function showStartBanner(name) {
     let banner = document.getElementById('custom-start-banner');
