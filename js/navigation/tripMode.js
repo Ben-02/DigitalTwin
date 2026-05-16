@@ -63,11 +63,9 @@ export function startTrip(path, destName, destLat, destLon) {
 
     console.log(`🚀 Starting navigation to ${destName}`);
 
-    // Hide search panel and campus view button during navigation
+    // Hide search panel during navigation
     const overlay = document.getElementById('ui-overlay');
     if (overlay) overlay.style.display = 'none';
-    const resetBtn = document.getElementById('reset-view-btn');
-    if (resetBtn) resetBtn.style.display = 'none';
 
     // Show navigation UI
     showNavigationUI();
@@ -154,8 +152,6 @@ export function stopTrip() {
     const toggleBtn = document.getElementById('toggle-btn');
     if (content) content.style.display = 'block';
     if (toggleBtn) toggleBtn.textContent = '▼';
-    const resetBtn = document.getElementById('reset-view-btn');
-    if (resetBtn) resetBtn.style.display = '';
 
     navBanner = null;
     navMainText = null;
