@@ -1,19 +1,30 @@
 import { viewer, scheduleRender } from './viewer.js';
+import { CONFIG } from '../config.js';
 
 export let osmBuildings;
 export let highlightedFeature = null;
 
 export async function loadOSMBuildings() {
     console.log("🏗️ Loading Cesium OSM Buildings (3D Tiles)...");
-    
+
     osmBuildings = await Cesium.createOsmBuildingsAsync();
-    
-    // Optimize tileset performance
-    osmBuildings.maximumScreenSpaceError = 16; // Default is 16, increase for better performance
-    
+
+    osmBuildings.maximumScreenSpaceError = 16;
+
+    // Clip buildings outside campus boundary
+    const coords = CONFIG.CAMPUS_BOUNDARY.coords;
+    osmBuildings.clippingPolygons = new Cesium.ClippingPolygonCollection({
+        polygons: [
+            new Cesium.ClippingPolygon({
+                positions: Cesium.Cartesian3.fromDegreesArray(coords.slice(0, -2))
+            })
+        ],
+        inverse: true
+    });
+
     viewer.scene.primitives.add(osmBuildings);
     scheduleRender(); // ← Tell Cesium to re-render
-    
+
     console.log("✅ 3D buildings loaded!");
 }
 
