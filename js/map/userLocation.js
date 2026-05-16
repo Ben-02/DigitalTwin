@@ -321,31 +321,21 @@ function updateLocationLabel(type) {
 
 function showManualLocationOverlay() {
     let overlay = document.getElementById('manual-location-overlay');
-    
+
     if (!overlay) {
         overlay = document.createElement('div');
         overlay.id = 'manual-location-overlay';
-        overlay.innerHTML = `
-            <div style="background: rgba(0,0,0,0.8); color: white; padding: 20px; border-radius: 8px; text-align: center;">
-                <h3 style="margin: 0 0 10px 0;">📍 Set Your Location</h3>
-                <p style="margin: 0 0 15px 0;">Click anywhere on the map to set your current location</p>
-                <button onclick="cancelManualLocationMode()" style="padding: 8px 20px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
-                    Cancel
-                </button>
-            </div>
-        `;
-        overlay.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 10000;
-            pointer-events: auto;
-        `;
         document.body.appendChild(overlay);
     }
-    
-    overlay.style.display = 'block';
+
+    overlay.innerHTML = `
+        <span style="flex:1;">📍 Tap the map to set your location</span>
+        <button onclick="cancelManualLocationMode()"
+            style="padding:6px 16px; background:#dc3545; color:white; border:none; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; flex-shrink:0;">
+            Cancel
+        </button>
+    `;
+    overlay.style.cssText = 'position:fixed; bottom:0; left:0; right:0; z-index:10000; background:rgba(0,0,0,0.85); color:white; padding:14px 20px; display:flex; align-items:center; gap:12px; font-size:14px;';
 }
 
 function hideManualLocationOverlay() {

@@ -54,6 +54,27 @@ html, body, #cesiumContainer {
   margin: 0;
 }
 
+/* ===== CAMPUS VIEW BUTTON ===== */
+#reset-view-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 16px;
+  z-index: 1000;
+  padding: 10px 16px;
+  background: white;
+  color: #333;
+  border: none;
+  border-radius: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#reset-view-btn:active {
+  background: #f0f0f0;
+}
+
 /* ===== SEARCH PANEL ===== */
 #ui-overlay {
   position: absolute;
@@ -335,22 +356,45 @@ html, body, #cesiumContainer {
 
 /* ===== DESKTOP OVERRIDES ===== */
 @media (min-width: 768px) {
-  #ui-overlay {
+  #left-column {
+    position: absolute;
     top: 20px;
     left: 20px;
-    right: auto;
+    z-index: 1000;
     width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    pointer-events: none;
+  }
+
+  #left-column > * {
+    pointer-events: auto;
+  }
+
+  #ui-overlay {
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    width: 100%;
+    z-index: auto;
   }
 
   #info-panel {
-    position: absolute;
-    top: 20px;
-    right: 20px;
+    position: relative;
+    top: auto;
+    right: auto;
     bottom: auto;
     left: auto;
-    width: 320px;
+    width: 100%;
+    z-index: auto;
     border-radius: 12px;
-    max-height: 80vh;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    max-height: none;
     padding: 20px;
   }
 

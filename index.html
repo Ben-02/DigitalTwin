@@ -21,35 +21,41 @@
 <!-- Cesium Viewer -->
 <div id="cesiumContainer"></div>
 
-<!-- Search Panel -->
-<div id="ui-overlay">
-  <div id="ui-header" onclick="togglePanel()">
-    <span id="header-title">🏛️ Curtin Bentley Campus</span>
-    <button id="toggle-btn">▼</button>
-  </div>
-
-  <div id="ui-content">
-    <div id="search-row">
-      <input type="text" id="searchInput" placeholder="Search building (e.g. 109, 206)..." />
-      <button id="searchButton">Search</button>
+<!-- Left Column: Search + Info panels stacked on desktop -->
+<div id="left-column">
+  <!-- Search Panel -->
+  <div id="ui-overlay">
+    <div id="ui-header" onclick="togglePanel()">
+      <span id="header-title">🏛️ Curtin Bentley Campus</span>
+      <button id="toggle-btn">▼</button>
     </div>
 
-    <div id="location-section">
-      <p id="location-label">📍 Location: <span id="location-type-text" style="color: #007bff; font-weight: bold;">GPS</span></p>
-      <div id="location-buttons-container">
-        <button id="setLocationBtn" onclick="enableManualLocationSetting()">📍 Set My Location</button>
-        <button id="refreshGpsBtn" onclick="updateUserLocation()">🔄 Refresh GPS</button>
+    <div id="ui-content">
+      <div id="search-row">
+        <input type="text" id="searchInput" placeholder="Search building (e.g. 109, 206)..." />
+        <button id="searchButton">Search</button>
+      </div>
+
+      <div id="location-section">
+        <p id="location-label">📍 Location: <span id="location-type-text" style="color: #007bff; font-weight: bold;">GPS</span></p>
+        <div id="location-buttons-container">
+          <button id="setLocationBtn" onclick="enableManualLocationSetting()">📍 Set My Location</button>
+          <button id="refreshGpsBtn" onclick="updateUserLocation()">🔄 Refresh GPS</button>
+        </div>
       </div>
     </div>
   </div>
+
+  <!-- Info Panel (Bottom Sheet on Mobile, stacked on Desktop) -->
+  <div id="info-panel">
+    <div id="info-handle"></div>
+    <button class="close-btn" id="closeButton">×</button>
+    <div id="info-content"></div>
+  </div>
 </div>
 
-<!-- Info Panel (Bottom Sheet on Mobile) -->
-<div id="info-panel">
-  <div id="info-handle"></div>
-  <button class="close-btn" id="closeButton">×</button>
-  <div id="info-content"></div>
-</div>
+<!-- Campus View Button -->
+<button id="reset-view-btn" onclick="window.resetCampusView()">🏠 Campus View</button>
 
 <!-- Navigation Instruction Banner (shown during trip) -->
 <div id="nav-instruction-banner">

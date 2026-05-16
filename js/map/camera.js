@@ -36,3 +36,5 @@ export function flyToCampus() {
         duration: 3
     });
 }
+
+window.resetCampusView = function() { flyToCampus(); };
