@@ -6,6 +6,9 @@ import { findNearestNode, findPath, getNodeById } from './pathGraph.js';
 let currentRoutePath = [];
 let currentDestination = { lat: null, lon: null, name: null };
 let customStartPoint = null;
+let navigationActive = false;
+
+export function setNavigationActive(active) { navigationActive = active; }
 
 export function getCurrentRoutePath() { return currentRoutePath; }
 export function getCurrentDestination() { return currentDestination; }
@@ -173,12 +176,13 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
         }
     });
 
-    // Show start/end banners
-    if (!usingCustomStart) {
-        showStartBanner('Your Location');
+    if (!navigationActive) {
+        if (!usingCustomStart) {
+            showStartBanner('Your Location');
+        }
+        showEndBanner(targetName);
+        collapseSearchPanel();
     }
-    showEndBanner(targetName);
-    collapseSearchPanel();
 
     // Calculate total distance
     let totalDistance = startResult.distance + endResult.distance;
@@ -196,10 +200,12 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
     console.log(`📏 Total distance: ${totalDistance.toFixed(0)} meters (following pathways)`);
     console.log(`🚶 Estimated walking time: ${Math.ceil(totalDistance / 80)} minutes`);
     
-    zoomToShowRoute(startPoint.latitude, startPoint.longitude, targetLat, targetLon);
-    showRouteInfo(totalDistance, targetName, usingCustomStart);
+    if (!navigationActive) {
+        zoomToShowRoute(startPoint.latitude, startPoint.longitude, targetLat, targetLon);
+        showRouteInfo(totalDistance, targetName, usingCustomStart);
+    }
     scheduleRender();
-    if (!usingCustomStart) {
+    if (!navigationActive && !usingCustomStart) {
         setTimeout(() => {
             import('./tripMode.js').catch(() => {});
         }, 500);
@@ -232,20 +238,24 @@ function drawDirectRoute(targetLat, targetLon, targetName) {
         }
     });
 
-    const usingCustomStart = customStartPoint !== null;
-    if (!usingCustomStart) {
-        showStartBanner('Your Location');
+    if (!navigationActive) {
+        const usingCustomStart = customStartPoint !== null;
+        if (!usingCustomStart) {
+            showStartBanner('Your Location');
+        }
+        showEndBanner(targetName);
+        collapseSearchPanel();
     }
-    showEndBanner(targetName);
-    collapseSearchPanel();
 
     const distance = calculateDistance(
         startPoint.latitude, startPoint.longitude,
         targetLat, targetLon
     );
 
-    zoomToShowRoute(startPoint.latitude, startPoint.longitude, targetLat, targetLon);
-    showRouteInfo(distance, targetName, customStartPoint !== null);
+    if (!navigationActive) {
+        zoomToShowRoute(startPoint.latitude, startPoint.longitude, targetLat, targetLon);
+        showRouteInfo(distance, targetName, customStartPoint !== null);
+    }
 }
 
 function showRouteInfo(distance, targetName, usingCustomStart = false) {

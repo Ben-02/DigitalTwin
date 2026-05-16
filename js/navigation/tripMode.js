@@ -1,7 +1,7 @@
 import { viewer, scheduleRender } from '../map/viewer.js';
 import { updatePositionDuringNavigation, userLocation } from '../map/userLocation.js';
 import { osmBuildings } from '../map/buildings.js';
-import { updateRouteDisplay, clearRoute } from './pathfinder.js';
+import { updateRouteDisplay, clearRoute, setNavigationActive } from './pathfinder.js';
 
 // Navigation state
 let isNavigating = false;
@@ -40,6 +40,7 @@ export function startTrip(path, destName, destLat, destLon) {
     }
 
     isNavigating = true;
+    setNavigationActive(true);
     isFollowingUser = true;
     routePath = path;
     buildCumulativeDistances();
@@ -62,11 +63,9 @@ export function startTrip(path, destName, destLat, destLon) {
 
     console.log(`🚀 Starting navigation to ${destName}`);
 
-    // Collapse search panel
-    const content = document.getElementById('ui-content');
-    const btn = document.getElementById('toggle-btn');
-    if (content) content.style.display = 'none';
-    if (btn) btn.textContent = '▲';
+    // Hide search panel entirely during navigation
+    const overlay = document.getElementById('ui-overlay');
+    if (overlay) overlay.style.display = 'none';
 
     // Show navigation UI
     showNavigationUI();
@@ -94,6 +93,7 @@ export function startTrip(path, destName, destLat, destLon) {
 // ===== STOP NAVIGATION =====
 export function stopTrip() {
     isNavigating = false;
+    setNavigationActive(false);
 
     if (watchId !== null) {
         navigator.geolocation.clearWatch(watchId);
@@ -145,7 +145,9 @@ export function stopTrip() {
     }
     viewer.resolutionScale = window.innerWidth <= 768 ? 0.7 : 1.0;
     scheduleRender();
-    // Re-expand search panel
+    // Restore search panel
+    const overlay = document.getElementById('ui-overlay');
+    if (overlay) overlay.style.display = '';
     const content = document.getElementById('ui-content');
     const btn = document.getElementById('toggle-btn');
     if (content) content.style.display = 'block';
