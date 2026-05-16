@@ -45,6 +45,14 @@ export function initializeViewer() {
     // Increase tile cache - keeps more tiles in memory during navigation
     viewer.scene.globe.tileCacheSize = 500;
 
+    // Only load terrain/imagery within the campus boundary
+    viewer.scene.globe.cartographicLimitRectangle = Cesium.Rectangle.fromDegrees(
+        CONFIG.CAMPUS_BOUNDARY.coords[0],   // west
+        CONFIG.CAMPUS_BOUNDARY.coords[7],   // south
+        CONFIG.CAMPUS_BOUNDARY.coords[2],   // east
+        CONFIG.CAMPUS_BOUNDARY.coords[1]    // north
+    );
+
     // Start camera at campus so there's no globe-spinning on load
     viewer.camera.setView({
         destination: Cesium.Cartesian3.fromDegrees(115.8924, -32.0215, 3400),
