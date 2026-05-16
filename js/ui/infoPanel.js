@@ -194,29 +194,7 @@ function showDirectionsMessage(msg, color) {
     }
 }
 
-// ===== PICK ON MAP OVERLAY =====
-
-function showPickOnMapOverlay() {
-    let overlay = document.getElementById('directions-map-overlay');
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'directions-map-overlay';
-        document.body.appendChild(overlay);
-    }
-    overlay.innerHTML = `
-        <span style="flex:1;">📍 Tap the map to set your starting point</span>
-        <button onclick="window.cancelDirectionsMapClick()"
-            style="padding:6px 16px; background:#dc3545; color:white; border:none; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; flex-shrink:0;">
-            Cancel
-        </button>
-    `;
-    overlay.style.cssText = 'position:fixed; bottom:0; left:0; right:0; z-index:10000; background:rgba(0,0,0,0.85); color:white; padding:14px 20px; display:flex; align-items:center; gap:12px; font-size:14px;';
-}
-
-function hidePickOnMapOverlay() {
-    const overlay = document.getElementById('directions-map-overlay');
-    if (overlay) overlay.style.display = 'none';
-}
+// ===== PICK ON MAP (uses shared map-pick-panel) =====
 
 // ===== WINDOW FUNCTIONS =====
 
@@ -246,9 +224,13 @@ window.directionsFromGPS = function() {
 
 window.directionsPickOnMap = function() {
     if (!pendingDirections) return;
-    document.getElementById('info-panel').style.display = 'none';
-    showPickOnMapOverlay();
     window.buildingClickEnabled = false;
+
+    import('../map/userLocation.js').then(({ showMapPickPanel, hideMapPickPanel }) => {
+        showMapPickPanel('📍 Pick Starting Point', 'Tap the map to set your starting point', () => window.cancelDirectionsMapClick());
+    });
+
+    import('../map/camera.js').then(({ flyToCampus }) => flyToCampus());
 
     import('../map/viewer.js').then(({ viewer }) => {
         directionsMapHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
@@ -263,8 +245,8 @@ window.directionsPickOnMap = function() {
                 directionsMapHandler.destroy();
                 directionsMapHandler = null;
                 window.buildingClickEnabled = true;
-                hidePickOnMapOverlay();
 
+                import('../map/userLocation.js').then(({ hideMapPickPanel }) => hideMapPickPanel());
                 import('../navigation/pathfinder.js').then(({ setCustomStartPoint, drawRouteTo }) => {
                     setCustomStartPoint(lat, lon, 'Map point');
                     drawRouteTo(pendingDirections.lat, pendingDirections.lon, pendingDirections.name);
@@ -280,8 +262,10 @@ window.cancelDirectionsMapClick = function() {
         directionsMapHandler = null;
     }
     window.buildingClickEnabled = true;
-    hidePickOnMapOverlay();
-    showDirectionsPanel();
+    import('../map/userLocation.js').then(({ hideMapPickPanel }) => {
+        hideMapPickPanel();
+        showDirectionsPanel();
+    });
 };
 
 window.directionsSearchBuilding = function() {

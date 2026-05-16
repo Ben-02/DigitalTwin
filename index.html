@@ -46,6 +46,20 @@
     </div>
   </div>
 
+  <!-- Reset Camera Button -->
+  <button id="reset-view-btn" onclick="window.resetCampusView()">🔄 Reset Camera</button>
+
+  <!-- Map Pick Panel (shown when user picks location/start on map) -->
+  <div id="map-pick-panel" style="display:none;">
+    <div id="map-pick-header">
+      <span id="map-pick-title">📍 Set Your Location</span>
+    </div>
+    <div id="map-pick-content">
+      <p id="map-pick-instruction">Tap the map to set your location</p>
+      <button id="map-pick-cancel" onclick="window.cancelMapPick()">Cancel</button>
+    </div>
+  </div>
+
   <!-- Info Panel (Bottom Sheet on Mobile, stacked on Desktop) -->
   <div id="info-panel">
     <div id="info-handle"></div>
@@ -53,9 +67,6 @@
     <div id="info-content"></div>
   </div>
 </div>
-
-<!-- Campus View Button -->
-<button id="reset-view-btn" onclick="window.resetCampusView()">🏠 Campus View</button>
 
 <!-- Navigation Instruction Banner (shown during trip) -->
 <div id="nav-instruction-banner">

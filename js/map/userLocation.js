@@ -1,5 +1,6 @@
 import { viewer, scheduleRender } from './viewer.js';
 import { CONFIG } from '../config.js';
+import { flyToCampus } from './camera.js';
 
 export let userLocation = null;
 export let userLocationMarker = null;
@@ -172,15 +173,16 @@ export async function enableManualLocationSetting() {
 function enterManualClickMode() {
     console.log("🖱️ Manual location mode enabled - click on the map to set your position");
 
+    flyToCampus();
+
     if (manualLocationHandler) {
         manualLocationHandler.destroy();
         manualLocationHandler = null;
     }
 
     window.buildingClickEnabled = false;
-    console.log("🚫 Building clicks disabled");
 
-    showManualLocationOverlay();
+    showMapPickPanel('📍 Set Your Location', 'Tap the map to set your location', () => cancelManualLocationMode());
 
     manualLocationHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
     
@@ -204,7 +206,7 @@ function enterManualClickMode() {
             console.log(`📍 Manual location set: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
             
             showUserLocationMarker();
-            hideManualLocationOverlay();
+            hideMapPickPanel();
             
             if (manualLocationHandler) {
                 manualLocationHandler.destroy();
@@ -238,18 +240,15 @@ function enterManualClickMode() {
 
 export function cancelManualLocationMode() {
     console.log("❌ Manual location mode cancelled");
-    
+
     if (manualLocationHandler) {
         manualLocationHandler.destroy();
         manualLocationHandler = null;
     }
-    
-    hideManualLocationOverlay();
-    
+
+    hideMapPickPanel();
+
     window.buildingClickEnabled = true;
-    console.log("✅ Building clicks re-enabled");
-    
-    alert('Manual location mode cancelled');
 }
 
 export function revertToGPSLocation() {
@@ -319,31 +318,38 @@ function updateLocationLabel(type) {
     }
 }
 
-function showManualLocationOverlay() {
-    let overlay = document.getElementById('manual-location-overlay');
+let mapPickCancelCallback = null;
+let savedInfoPanelDisplay = null;
 
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'manual-location-overlay';
-        document.body.appendChild(overlay);
-    }
+export function showMapPickPanel(title, instruction, onCancel) {
+    const infoPanel = document.getElementById('info-panel');
+    savedInfoPanelDisplay = infoPanel.style.display;
 
-    overlay.innerHTML = `
-        <span style="flex:1;">📍 Tap the map to set your location</span>
-        <button onclick="cancelManualLocationMode()"
-            style="padding:6px 16px; background:#dc3545; color:white; border:none; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; flex-shrink:0;">
-            Cancel
-        </button>
-    `;
-    overlay.style.cssText = 'position:fixed; bottom:0; left:0; right:0; z-index:10000; background:rgba(0,0,0,0.85); color:white; padding:14px 20px; display:flex; align-items:center; gap:12px; font-size:14px;';
+    document.getElementById('ui-overlay').style.display = 'none';
+    infoPanel.style.display = 'none';
+
+    document.getElementById('map-pick-title').textContent = title;
+    document.getElementById('map-pick-instruction').textContent = instruction;
+    document.getElementById('map-pick-panel').style.display = '';
+
+    mapPickCancelCallback = onCancel;
 }
 
-function hideManualLocationOverlay() {
-    const overlay = document.getElementById('manual-location-overlay');
-    if (overlay) {
-        overlay.style.display = 'none';
+export function hideMapPickPanel() {
+    document.getElementById('map-pick-panel').style.display = 'none';
+    document.getElementById('ui-overlay').style.display = '';
+
+    if (savedInfoPanelDisplay && savedInfoPanelDisplay !== 'none') {
+        document.getElementById('info-panel').style.display = savedInfoPanelDisplay;
     }
+
+    savedInfoPanelDisplay = null;
+    mapPickCancelCallback = null;
 }
+
+window.cancelMapPick = function() {
+    if (mapPickCancelCallback) mapPickCancelCallback();
+};
 
 function updateLocationButtons() {
     const container = document.getElementById('location-buttons-container');

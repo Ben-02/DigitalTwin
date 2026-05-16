@@ -7,6 +7,9 @@ let currentRoutePath = [];
 let currentDestination = { lat: null, lon: null, name: null };
 let customStartPoint = null;
 let navigationActive = false;
+let startPin = null;
+let endPin = null;
+const pinBuilder = new Cesium.PinBuilder();
 
 export function setNavigationActive(active) { navigationActive = active; }
 
@@ -17,6 +20,7 @@ export function setCustomStartPoint(lat, lon, name) {
     if (currentRoute) {
         viewer.entities.remove(currentRoute);
         currentRoute = null;
+        removeRoutePins();
         clearLastDestination();
         hideEndBanner();
         currentRoutePath = [];
@@ -41,6 +45,7 @@ export function clearCustomStartPoint(skipConfirm = false) {
     if (currentRoute) {
         viewer.entities.remove(currentRoute);
         currentRoute = null;
+        removeRoutePins();
         clearLastDestination();
         hideEndBanner();
         currentRoutePath = [];
@@ -70,6 +75,33 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
     const dLon = (lon2 - lon1) * toRad;
     const cosLat = Math.cos((lat1 + lat2) / 2 * toRad);
     return R * Math.sqrt(dLat * dLat + dLon * dLon * cosLat * cosLat);
+}
+
+function addRoutePins(startLat, startLon, endLat, endLon) {
+    removeRoutePins();
+
+    startPin = viewer.entities.add({
+        position: Cesium.Cartesian3.fromDegrees(startLon, startLat, 0),
+        billboard: {
+            image: pinBuilder.fromText('S', Cesium.Color.GREEN, 48).toDataURL(),
+            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+        }
+    });
+
+    endPin = viewer.entities.add({
+        position: Cesium.Cartesian3.fromDegrees(endLon, endLat, 0),
+        billboard: {
+            image: pinBuilder.fromText('E', Cesium.Color.RED, 48).toDataURL(),
+            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+        }
+    });
+}
+
+function removeRoutePins() {
+    if (startPin) { viewer.entities.remove(startPin); startPin = null; }
+    if (endPin) { viewer.entities.remove(endPin); endPin = null; }
 }
 
 function zoomToShowRoute(startLat, startLon, targetLat, targetLon) {
@@ -112,6 +144,7 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
     if (currentRoute) {
         viewer.entities.remove(currentRoute);
     }
+    removeRoutePins();
 
     // Find nearest nodes
     const startResult = findNearestNode(startPoint.latitude, startPoint.longitude);
@@ -177,6 +210,7 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
     });
 
     if (!navigationActive) {
+        addRoutePins(startPoint.latitude, startPoint.longitude, targetLat, targetLon);
         if (!usingCustomStart) {
             showStartBanner('Your Location');
         }
@@ -239,6 +273,7 @@ function drawDirectRoute(targetLat, targetLon, targetName) {
     });
 
     if (!navigationActive) {
+        addRoutePins(startPoint.latitude, startPoint.longitude, targetLat, targetLon);
         const usingCustomStart = customStartPoint !== null;
         if (!usingCustomStart) {
             showStartBanner('Your Location');
@@ -333,6 +368,7 @@ export function clearRoute(skipConfirm = false) {
 
     viewer.entities.remove(currentRoute);
     currentRoute = null;
+    removeRoutePins();
     clearLastDestination();
     hideStartBanner();
     hideEndBanner();
@@ -398,6 +434,7 @@ window.clearEndPoint = function() {
 
     viewer.entities.remove(currentRoute);
     currentRoute = null;
+    removeRoutePins();
     clearLastDestination();
     hideEndBanner();
     currentRoutePath = [];

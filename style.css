@@ -54,25 +54,77 @@ html, body, #cesiumContainer {
   margin: 0;
 }
 
-/* ===== CAMPUS VIEW BUTTON ===== */
+/* ===== RESET CAMERA BUTTON ===== */
 #reset-view-btn {
-  position: fixed;
-  bottom: 20px;
-  right: 16px;
+  position: absolute;
+  top: auto;
+  left: 10px;
+  right: 10px;
   z-index: 1000;
-  padding: 10px 16px;
+  padding: 10px;
   background: white;
   color: #333;
   border: none;
-  border-radius: 24px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  width: calc(100% - 20px);
 }
 
 #reset-view-btn:active {
   background: #f0f0f0;
+}
+
+/* ===== MAP PICK PANEL ===== */
+#map-pick-panel {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  overflow: hidden;
+}
+
+#map-pick-header {
+  padding: 12px 15px;
+}
+
+#map-pick-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+}
+
+#map-pick-content {
+  padding: 0 15px 15px;
+  border-top: 1px solid #eee;
+}
+
+#map-pick-instruction {
+  margin: 12px 0;
+  font-size: 14px;
+  color: #555;
+}
+
+#map-pick-cancel {
+  width: 100%;
+  padding: 10px;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#map-pick-cancel:active {
+  background: #c82333;
 }
 
 /* ===== SEARCH PANEL ===== */
@@ -375,7 +427,7 @@ html, body, #cesiumContainer {
     pointer-events: auto;
   }
 
-  #ui-overlay {
+  #ui-overlay, #map-pick-panel, #reset-view-btn {
     position: relative;
     top: auto;
     left: auto;
