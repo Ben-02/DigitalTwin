@@ -67,6 +67,36 @@
   </div>
 </div>
 
+<!-- Help Button -->
+<button id="help-btn" onclick="toggleHelp()">?</button>
+
+<!-- Help Modal -->
+<div id="help-modal" style="display:none;" onclick="if(event.target===this)toggleHelp()">
+  <div id="help-content">
+    <button class="close-btn" onclick="toggleHelp()">×</button>
+    <h3>How to Use</h3>
+
+    <h4>PC/Laptop Controls</h4>
+    <p><strong>Mouse Left-Click drag</strong>: Move the map</p>
+    <p><strong>Mouse Right-Click drag</strong>: Zoom in / out</p>
+    <p><strong>Mouse Wheel-Click drag</strong>: Tilt and rotate</p>
+    <p><strong>Ctrl + Left-Click drag</strong>: Tilt and rotate</p>
+    <p><strong>Mouse Wheel Turn</strong>: Zoom in / out</p>
+
+    <h4>Mobile Touch Controls</h4>
+    <p><strong>One finger drag</strong>: Move the map</p>
+    <p><strong>Pinch</strong>: Zoom in / out</p>
+    <p><strong>Two finger drag</strong>: Tilt and rotate</p>
+
+    <h4>Features</h4>
+    <p><strong>Search</strong>: Find buildings by number or name</p>
+    <p><strong>Directions</strong>: Click a building, then tap "Directions" to route from GPS, map pick, or another building</p>
+    <p><strong>Set My Location</strong>: Manually set your position on the map</p>
+    <p><strong>Start Trip</strong>: Begin turn-by-turn walking navigation (GPS mode only)</p>
+    <p><strong>Reset Camera</strong>: Return to the full campus view</p>
+  </div>
+</div>
+
 <!-- Navigation Instruction Banner (shown during trip) -->
 <div id="nav-instruction-banner">
     <div id="nav-main-instruction">Starting navigation...</div>
@@ -85,6 +115,11 @@
 <!-- Main Script -->
 <script type="module" src="js/main.js"></script>
 <script>
+  function toggleHelp() {
+    const modal = document.getElementById('help-modal');
+    modal.style.display = modal.style.display === 'none' ? 'flex' : 'none';
+  }
+
   function togglePanel() {
     const content = document.getElementById('ui-content');
     const btn = document.getElementById('toggle-btn');

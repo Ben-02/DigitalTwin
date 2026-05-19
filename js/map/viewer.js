@@ -30,6 +30,18 @@ export function initializeViewer() {
         maximumRenderTimeChange: Infinity
     });
 
+    // Custom scroll-wheel zoom — CesiumJS default is too aggressive
+    const controller = viewer.scene.screenSpaceCameraController;
+    controller.zoomEventTypes = [Cesium.CameraEventType.RIGHT_DRAG, Cesium.CameraEventType.PINCH];
+    viewer.scene.canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const height = viewer.camera.positionCartographic.height;
+        const amount = height * 0.15;
+        if (e.deltaY > 0) viewer.camera.zoomOut(amount);
+        else viewer.camera.zoomIn(amount);
+        scheduleRender();
+    }, { passive: false });
+
     // Disable expensive visual effects
     viewer.shadows = false;
     viewer.scene.fog.enabled = false;
