@@ -35,9 +35,12 @@ export function setCustomStartPoint(lat, lon, name) {
 
 export function clearCustomStartPoint(skipConfirm = false) {
     if (!skipConfirm && currentRoute) {
-        const confirmed = confirm('This will clear the current route and trip information. Continue?');
+        const confirmed = confirm('Clear the start point? You can re-select a new starting point.');
         if (!confirmed) return;
     }
+
+    const savedDest = currentDestination.lat ? { ...currentDestination } : null;
+    const showReselect = !skipConfirm && savedDest;
 
     customStartPoint = null;
     hideStartBanner();
@@ -50,9 +53,16 @@ export function clearCustomStartPoint(skipConfirm = false) {
         hideEndBanner();
         currentRoutePath = [];
         currentDestination = { lat: null, lon: null, name: null };
+        scheduleRender();
+    }
+
+    if (showReselect) {
+        import('../ui/infoPanel.js').then(({ showStartReselect }) => {
+            showStartReselect(savedDest.lat, savedDest.lon, savedDest.name);
+        });
+    } else if (!skipConfirm) {
         document.getElementById('info-panel').style.display = 'none';
         expandSearchPanel();
-        scheduleRender();
     }
     console.log("🗑️ Custom start cleared");
 }
@@ -366,8 +376,15 @@ export function clearRoute(skipConfirm = false) {
         if (!confirmed) return;
     }
 
-    viewer.entities.remove(currentRoute);
-    currentRoute = null;
+    clearAllDirectionsState();
+    console.log("🗑️ Route cleared");
+}
+
+export function clearAllDirectionsState() {
+    if (currentRoute) {
+        viewer.entities.remove(currentRoute);
+        currentRoute = null;
+    }
     removeRoutePins();
     clearLastDestination();
     hideStartBanner();
@@ -378,7 +395,6 @@ export function clearRoute(skipConfirm = false) {
     document.getElementById('info-panel').style.display = 'none';
     expandSearchPanel();
     scheduleRender();
-    console.log("🗑️ Route cleared");
 }
 
 export function updateRouteDisplay(userLat, userLon, fromIndex) {
@@ -429,8 +445,11 @@ window.clearCustomStart = function() {
 
 window.clearEndPoint = function() {
     if (!currentRoute) return;
-    const confirmed = confirm('This will clear the current route and trip information. Continue?');
+    const confirmed = confirm('Clear the destination? You can re-select a new destination.');
     if (!confirmed) return;
+
+    const savedStart = customStartPoint ? { ...customStartPoint } : null;
+    const savedStartName = customStartPoint ? customStartPoint.name : 'Your Location';
 
     viewer.entities.remove(currentRoute);
     currentRoute = null;
@@ -439,13 +458,12 @@ window.clearEndPoint = function() {
     hideEndBanner();
     currentRoutePath = [];
     currentDestination = { lat: null, lon: null, name: null };
-    document.getElementById('info-panel').style.display = 'none';
     scheduleRender();
 
-    if (!customStartPoint) {
-        hideStartBanner();
-        expandSearchPanel();
-    }
+    import('../ui/infoPanel.js').then(({ showDestinationReselect }) => {
+        showDestinationReselect(savedStartName, savedStart);
+    });
+
     console.log("🗑️ End point cleared");
 };
 

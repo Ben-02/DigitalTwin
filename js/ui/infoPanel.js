@@ -1,3 +1,5 @@
+import { CONFIG } from '../config.js';
+
 function escapeHtml(str) {
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
@@ -5,6 +7,9 @@ function escapeHtml(str) {
 let pendingDirections = null;
 let pendingBuildingInfo = null;
 let directionsMapHandler = null;
+let isReselectingStart = false;
+let isReselectingDest = false;
+let savedStartForReselect = null;
 
 export function showBuildingInfo(entity) {
     const props = entity.properties;
@@ -194,7 +199,190 @@ function showDirectionsMessage(msg, color) {
     }
 }
 
-// ===== PICK ON MAP (uses shared map-pick-panel) =====
+// ===== SHARED SEARCH HELPER =====
+
+function searchBuildingsFromMetadata(term, callback) {
+    import('../data/metadata.js').then(({ buildingMetadataMap }) => {
+        const results = [];
+
+        for (let [elementId, entity] of buildingMetadataMap) {
+            const props = entity.properties;
+            const num = props['addr:housenumber']?._value || '';
+            const name = props.name?._value || '';
+            const houseName = props['addr:housename']?._value || '';
+
+            if (num.toLowerCase().includes(term) ||
+                name.toLowerCase().includes(term) ||
+                houseName.toLowerCase().includes(term)) {
+
+                let lat, lon;
+                if (entity.position) {
+                    const pos = entity.position.getValue(Cesium.JulianDate.now());
+                    const carto = Cesium.Cartographic.fromCartesian(pos);
+                    lat = Cesium.Math.toDegrees(carto.latitude);
+                    lon = Cesium.Math.toDegrees(carto.longitude);
+                } else if (entity.polygon?.hierarchy) {
+                    const hierarchy = entity.polygon.hierarchy.getValue(Cesium.JulianDate.now());
+                    const positions = hierarchy.positions;
+                    let sx = 0, sy = 0, sz = 0;
+                    positions.forEach(p => { sx += p.x; sy += p.y; sz += p.z; });
+                    const center = new Cesium.Cartesian3(sx / positions.length, sy / positions.length, sz / positions.length);
+                    const carto = Cesium.Cartographic.fromCartesian(center);
+                    lat = Cesium.Math.toDegrees(carto.latitude);
+                    lon = Cesium.Math.toDegrees(carto.longitude);
+                }
+
+                if (lat && lon) {
+                    const c = CONFIG.CAMPUS_BOUNDARY.coords;
+                    if (lon < c[0] || lon > c[2] || lat < c[7] || lat > c[1]) continue;
+
+                    const buildingNum = num || 'Unknown';
+                    const buildingName = houseName || name || '';
+                    const fullName = buildingNum !== 'Unknown' ? `Building ${buildingNum}` : buildingName;
+                    const exact = num.toLowerCase() === term;
+                    results.push({ lat, lon, buildingNum, buildingName, fullName, exact });
+                }
+            }
+        }
+
+        results.sort((a, b) => {
+            if (a.exact !== b.exact) return a.exact ? -1 : 1;
+            return a.buildingNum.localeCompare(b.buildingNum, undefined, { numeric: true });
+        });
+
+        const seen = new Set();
+        const unique = results.filter(r => {
+            const key = r.buildingNum !== 'Unknown' ? r.buildingNum : `${r.lat.toFixed(5)},${r.lon.toFixed(5)}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+
+        callback(unique);
+    });
+}
+
+function renderSearchResults(results, containerId, selectFnName) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    if (results.length === 0) {
+        container.innerHTML = '<p style="color:#999; font-size:12px; margin:4px 0;">No buildings found</p>';
+        return;
+    }
+
+    let html = '';
+    results.slice(0, 5).forEach((r, i) => {
+        html += `<div onclick="window.${selectFnName}(${i})"
+            style="padding:8px 10px; margin:4px 0; background:#f8f8f8; border-radius:6px; cursor:pointer; border:1px solid #eee; font-size:13px;">
+            <strong>${escapeHtml(r.fullName)}</strong>
+            ${r.buildingName && r.buildingNum !== 'Unknown' ? `<br><span style="color:#666; font-size:11px;">${escapeHtml(r.buildingName)}</span>` : ''}
+        </div>`;
+    });
+
+    if (results.length > 5) {
+        html += `<p style="color:#999; font-size:11px; margin:4px 0;">Showing first 5 of ${results.length} results</p>`;
+    }
+
+    container.innerHTML = html;
+}
+
+// ===== RE-SELECT PANELS =====
+
+export function showStartReselect(destLat, destLon, destName) {
+    isReselectingStart = true;
+    isReselectingDest = false;
+    pendingDirections = { lat: destLat, lon: destLon, name: destName };
+
+    const infoPanel = document.getElementById('info-panel');
+    const infoContent = document.getElementById('info-content');
+
+    infoContent.innerHTML = `
+        <h3 style="margin:10px 0 6px;">Re-select Start</h3>
+        <p style="margin:4px 0 12px; font-size:14px;">Destination: <strong>${escapeHtml(destName)}</strong></p>
+        <hr style="border:none; border-top:1px solid #eee; margin:0 0 12px;">
+        <p style="margin:0 0 10px; font-size:13px; color:#666; font-weight:600;">Choose new starting point:</p>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+            <button onclick="window.directionsFromGPS()"
+                style="width:100%; padding:12px; background:#27ae60; color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; text-align:left;">
+                📍 My Location (GPS)
+            </button>
+            <button onclick="window.directionsPickOnMap()"
+                style="width:100%; padding:12px; background:#e67e22; color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; text-align:left;">
+                🖱️ Pick on Map
+            </button>
+            <button onclick="window.directionsSearchBuilding()"
+                style="width:100%; padding:12px; background:#3498db; color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; text-align:left;">
+                🏛️ Search Building
+            </button>
+        </div>
+        <div id="directions-search-section" style="display:none; margin-top:8px;">
+            <div style="display:flex; gap:6px;">
+                <input type="text" id="directions-search-input"
+                    placeholder="Building name or number..."
+                    onkeydown="if(event.key==='Enter')window.directionsDoSearch()"
+                    style="flex:1; padding:8px 10px; border:2px solid #ddd; border-radius:6px; font-size:13px; outline:none;" />
+                <button onclick="window.directionsDoSearch()"
+                    style="padding:8px 12px; background:#ff6600; color:white; border:none; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; width:auto;">
+                    Go
+                </button>
+            </div>
+            <div id="directions-search-results" style="margin-top:6px; max-height:150px; overflow-y:auto;"></div>
+        </div>
+        <p id="directions-message" style="display:none; font-size:12px; margin:8px 0 0;"></p>
+        <button onclick="window.cancelStartReselect()"
+            style="width:100%; margin-top:12px; padding:10px; background:none; color:#e74c3c; border:1px solid #e74c3c; border-radius:8px; font-size:13px; cursor:pointer;">
+            Cancel
+        </button>
+    `;
+
+    infoPanel.style.display = 'block';
+}
+
+export function showDestinationReselect(startName, savedStart) {
+    isReselectingDest = true;
+    isReselectingStart = false;
+    savedStartForReselect = savedStart;
+
+    const infoPanel = document.getElementById('info-panel');
+    const infoContent = document.getElementById('info-content');
+
+    infoContent.innerHTML = `
+        <h3 style="margin:10px 0 6px;">Re-select Destination</h3>
+        <p style="margin:4px 0 12px; font-size:14px;">Start: <strong>${escapeHtml(startName)}</strong></p>
+        <hr style="border:none; border-top:1px solid #eee; margin:0 0 12px;">
+        <p style="margin:0 0 10px; font-size:13px; color:#666; font-weight:600;">Choose new destination:</p>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+            <button onclick="window.destSearchBuilding()"
+                style="width:100%; padding:12px; background:#3498db; color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; text-align:left;">
+                🏛️ Search Building
+            </button>
+            <button onclick="window.destPickOnMap()"
+                style="width:100%; padding:12px; background:#e67e22; color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; text-align:left;">
+                🖱️ Pick on Map
+            </button>
+        </div>
+        <div id="dest-search-section" style="display:none; margin-top:8px;">
+            <div style="display:flex; gap:6px;">
+                <input type="text" id="dest-search-input"
+                    placeholder="Building name or number..."
+                    onkeydown="if(event.key==='Enter')window.destDoSearch()"
+                    style="flex:1; padding:8px 10px; border:2px solid #ddd; border-radius:6px; font-size:13px; outline:none;" />
+                <button onclick="window.destDoSearch()"
+                    style="padding:8px 12px; background:#ff6600; color:white; border:none; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; width:auto;">
+                    Go
+                </button>
+            </div>
+            <div id="dest-search-results" style="margin-top:6px; max-height:150px; overflow-y:auto;"></div>
+        </div>
+        <button onclick="window.cancelDestReselect()"
+            style="width:100%; margin-top:12px; padding:10px; background:none; color:#e74c3c; border:1px solid #e74c3c; border-radius:8px; font-size:13px; cursor:pointer;">
+            Cancel
+        </button>
+    `;
+
+    infoPanel.style.display = 'block';
+}
 
 // ===== WINDOW FUNCTIONS =====
 
@@ -242,6 +430,12 @@ window.directionsPickOnMap = function() {
                 const lon = Cesium.Math.toDegrees(carto.longitude);
                 const lat = Cesium.Math.toDegrees(carto.latitude);
 
+                const c = CONFIG.CAMPUS_BOUNDARY.coords;
+                if (lon < c[0] || lon > c[2] || lat < c[7] || lat > c[1]) {
+                    alert('Please select a point within the campus boundary.');
+                    return;
+                }
+
                 directionsMapHandler.destroy();
                 directionsMapHandler = null;
                 window.buildingClickEnabled = true;
@@ -264,7 +458,11 @@ window.cancelDirectionsMapClick = function() {
     window.buildingClickEnabled = true;
     import('../map/userLocation.js').then(({ hideMapPickPanel }) => {
         hideMapPickPanel();
-        showDirectionsPanel();
+        if (isReselectingStart) {
+            showStartReselect(pendingDirections.lat, pendingDirections.lon, pendingDirections.name);
+        } else {
+            showDirectionsPanel();
+        }
     });
 };
 
@@ -284,83 +482,9 @@ window.directionsDoSearch = function() {
     const term = input ? input.value.trim().toLowerCase() : '';
     if (!term) return;
 
-    import('../data/metadata.js').then(({ buildingMetadataMap }) => {
-        const results = [];
-
-        for (let [elementId, entity] of buildingMetadataMap) {
-            const props = entity.properties;
-            const num = props['addr:housenumber']?._value || '';
-            const name = props.name?._value || '';
-            const houseName = props['addr:housename']?._value || '';
-
-            if (num.toLowerCase().includes(term) ||
-                name.toLowerCase().includes(term) ||
-                houseName.toLowerCase().includes(term)) {
-
-                let lat, lon;
-                if (entity.position) {
-                    const pos = entity.position.getValue(Cesium.JulianDate.now());
-                    const carto = Cesium.Cartographic.fromCartesian(pos);
-                    lat = Cesium.Math.toDegrees(carto.latitude);
-                    lon = Cesium.Math.toDegrees(carto.longitude);
-                } else if (entity.polygon?.hierarchy) {
-                    const hierarchy = entity.polygon.hierarchy.getValue(Cesium.JulianDate.now());
-                    const positions = hierarchy.positions;
-                    let sx = 0, sy = 0, sz = 0;
-                    positions.forEach(p => { sx += p.x; sy += p.y; sz += p.z; });
-                    const center = new Cesium.Cartesian3(sx / positions.length, sy / positions.length, sz / positions.length);
-                    const carto = Cesium.Cartographic.fromCartesian(center);
-                    lat = Cesium.Math.toDegrees(carto.latitude);
-                    lon = Cesium.Math.toDegrees(carto.longitude);
-                }
-
-                if (lat && lon) {
-                    const buildingNum = num || 'Unknown';
-                    const buildingName = houseName || name || '';
-                    const fullName = buildingNum !== 'Unknown' ? `Building ${buildingNum}` : buildingName;
-                    const exact = num.toLowerCase() === term;
-                    results.push({ lat, lon, buildingNum, buildingName, fullName, exact });
-                }
-            }
-        }
-
-        const container = document.getElementById('directions-search-results');
-        if (!container) return;
-
-        if (results.length === 0) {
-            container.innerHTML = '<p style="color:#999; font-size:12px; margin:4px 0;">No buildings found</p>';
-            return;
-        }
-
-        results.sort((a, b) => {
-            if (a.exact !== b.exact) return a.exact ? -1 : 1;
-            return a.buildingNum.localeCompare(b.buildingNum, undefined, { numeric: true });
-        });
-
-        const seen = new Set();
-        const unique = results.filter(r => {
-            const key = r.buildingNum !== 'Unknown' ? r.buildingNum : `${r.lat.toFixed(5)},${r.lon.toFixed(5)}`;
-            if (seen.has(key)) return false;
-            seen.add(key);
-            return true;
-        });
-
+    searchBuildingsFromMetadata(term, (unique) => {
         window._dirStartResults = unique;
-
-        let html = '';
-        unique.slice(0, 5).forEach((r, i) => {
-            html += `<div onclick="window.selectStartBuilding(${i})"
-                style="padding:8px 10px; margin:4px 0; background:#f8f8f8; border-radius:6px; cursor:pointer; border:1px solid #eee; font-size:13px;">
-                <strong>${escapeHtml(r.fullName)}</strong>
-                ${r.buildingName && r.buildingNum !== 'Unknown' ? `<br><span style="color:#666; font-size:11px;">${escapeHtml(r.buildingName)}</span>` : ''}
-            </div>`;
-        });
-
-        if (unique.length > 5) {
-            html += `<p style="color:#999; font-size:11px; margin:4px 0;">Showing first 5 of ${unique.length} results</p>`;
-        }
-
-        container.innerHTML = html;
+        renderSearchResults(unique, 'directions-search-results', 'selectStartBuilding');
     });
 };
 
@@ -398,6 +522,121 @@ window.directionsGoBack = function() {
     }
 };
 
+// ===== DESTINATION RE-SELECT HANDLERS =====
+
+window.destSearchBuilding = function() {
+    const section = document.getElementById('dest-search-section');
+    if (!section) return;
+    const isVisible = section.style.display === 'block';
+    section.style.display = isVisible ? 'none' : 'block';
+    if (!isVisible) {
+        const input = document.getElementById('dest-search-input');
+        if (input) input.focus();
+    }
+};
+
+window.destDoSearch = function() {
+    const input = document.getElementById('dest-search-input');
+    const term = input ? input.value.trim().toLowerCase() : '';
+    if (!term) return;
+
+    searchBuildingsFromMetadata(term, (unique) => {
+        window._destResults = unique;
+        renderSearchResults(unique, 'dest-search-results', 'selectDestBuilding');
+    });
+};
+
+window.selectDestBuilding = function(index) {
+    const results = window._destResults;
+    if (!results || !results[index]) return;
+    const dest = results[index];
+    isReselectingDest = false;
+    savedStartForReselect = null;
+    import('../navigation/pathfinder.js').then(({ drawRouteTo }) => {
+        drawRouteTo(dest.lat, dest.lon, dest.fullName);
+    });
+};
+
+window.destPickOnMap = function() {
+    window.buildingClickEnabled = false;
+
+    import('../map/userLocation.js').then(({ showMapPickPanel }) => {
+        showMapPickPanel('🏁 Pick Destination', 'Tap the map to set your destination', () => window.cancelDestMapClick());
+    });
+
+    import('../map/camera.js').then(({ flyToCampus }) => flyToCampus());
+
+    import('../map/viewer.js').then(({ viewer }) => {
+        directionsMapHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+
+        directionsMapHandler.setInputAction(function(click) {
+            const cartesian = viewer.camera.pickEllipsoid(click.position, viewer.scene.globe.ellipsoid);
+            if (Cesium.defined(cartesian)) {
+                const carto = Cesium.Cartographic.fromCartesian(cartesian);
+                const lon = Cesium.Math.toDegrees(carto.longitude);
+                const lat = Cesium.Math.toDegrees(carto.latitude);
+
+                const c = CONFIG.CAMPUS_BOUNDARY.coords;
+                if (lon < c[0] || lon > c[2] || lat < c[7] || lat > c[1]) {
+                    alert('Please select a point within the campus boundary.');
+                    return;
+                }
+
+                directionsMapHandler.destroy();
+                directionsMapHandler = null;
+                window.buildingClickEnabled = true;
+                isReselectingDest = false;
+                savedStartForReselect = null;
+
+                import('../map/userLocation.js').then(({ hideMapPickPanel }) => hideMapPickPanel());
+                import('../navigation/pathfinder.js').then(({ drawRouteTo }) => {
+                    drawRouteTo(lat, lon, 'Map point');
+                });
+            }
+        }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+    });
+};
+
+window.cancelDestMapClick = function() {
+    if (directionsMapHandler) {
+        directionsMapHandler.destroy();
+        directionsMapHandler = null;
+    }
+    window.buildingClickEnabled = true;
+    import('../map/userLocation.js').then(({ hideMapPickPanel }) => {
+        hideMapPickPanel();
+        showDestinationReselect(
+            savedStartForReselect ? savedStartForReselect.name : 'Your Location',
+            savedStartForReselect
+        );
+    });
+};
+
+window.cancelStartReselect = function() {
+    isReselectingStart = false;
+    pendingDirections = null;
+    import('../navigation/pathfinder.js').then(({ clearAllDirectionsState }) => {
+        clearAllDirectionsState();
+    });
+};
+
+window.cancelDestReselect = function() {
+    isReselectingDest = false;
+    savedStartForReselect = null;
+    import('../navigation/pathfinder.js').then(({ clearAllDirectionsState }) => {
+        clearAllDirectionsState();
+    });
+};
+
 export function closeInfoPanel() {
     document.getElementById('info-panel').style.display = 'none';
+    if (isReselectingStart || isReselectingDest) {
+        isReselectingStart = false;
+        isReselectingDest = false;
+        savedStartForReselect = null;
+        pendingDirections = null;
+        import('../navigation/pathfinder.js').then(({ clearAllDirectionsState }) => {
+            clearAllDirectionsState();
+        });
+    }
 }

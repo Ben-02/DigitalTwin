@@ -194,7 +194,12 @@ function enterManualClickMode() {
             const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
             const longitude = Cesium.Math.toDegrees(cartographic.longitude);
             const latitude = Cesium.Math.toDegrees(cartographic.latitude);
-            
+
+            if (!isInsideCampus(latitude, longitude)) {
+                alert('Please select a location within the campus boundary.');
+                return;
+            }
+
             userLocation = {
                 latitude: latitude,
                 longitude: longitude,

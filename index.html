@@ -26,6 +26,7 @@
   <!-- Search Panel -->
   <div id="ui-overlay">
     <div id="ui-header" onclick="togglePanel()">
+      <button id="header-help-btn" onclick="event.stopPropagation();toggleHelp()">?</button>
       <span id="header-title">🏛️ Curtin Bentley Campus</span>
       <button id="toggle-btn">▼</button>
     </div>
@@ -76,17 +77,21 @@
     <button class="close-btn" onclick="toggleHelp()">×</button>
     <h3>How to Use</h3>
 
-    <h4>PC/Laptop Controls</h4>
-    <p><strong>Mouse Left-Click drag</strong>: Move the map</p>
-    <p><strong>Mouse Right-Click drag</strong>: Zoom in / out</p>
-    <p><strong>Mouse Wheel-Click drag</strong>: Tilt and rotate</p>
-    <p><strong>Ctrl + Left-Click drag</strong>: Tilt and rotate</p>
-    <p><strong>Mouse Wheel Turn</strong>: Zoom in / out</p>
+    <div class="help-desktop-only">
+      <h4>PC/Laptop Controls</h4>
+      <p><strong>Mouse Left-Click drag</strong>: Move the map</p>
+      <p><strong>Mouse Right-Click drag</strong>: Zoom in / out</p>
+      <p><strong>Mouse Wheel-Click drag</strong>: Tilt and rotate</p>
+      <p><strong>Ctrl + Left-Click drag</strong>: Tilt and rotate</p>
+      <p><strong>Mouse Wheel Turn</strong>: Zoom in / out</p>
+    </div>
 
-    <h4>Mobile Touch Controls</h4>
-    <p><strong>One finger drag</strong>: Move the map</p>
-    <p><strong>Pinch</strong>: Zoom in / out</p>
-    <p><strong>Two finger drag</strong>: Tilt and rotate</p>
+    <div class="help-mobile-only">
+      <h4>Mobile Touch Controls</h4>
+      <p><strong>One finger drag</strong>: Move the map</p>
+      <p><strong>Pinch</strong>: Zoom in / out</p>
+      <p><strong>Two finger drag</strong>: Tilt and rotate</p>
+    </div>
 
     <h4>Features</h4>
     <p><strong>Search</strong>: Find buildings by number or name</p>

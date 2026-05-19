@@ -3,6 +3,7 @@ import { showBuildingInfoWithDirections } from './infoPanel.js';
 import { flyToBuilding } from '../map/camera.js';
 import { viewer } from '../map/viewer.js';
 import { removeHighlight } from '../map/buildings.js';
+import { CONFIG } from '../config.js';
 
 let lastSearchMatches = [];
 
@@ -59,6 +60,9 @@ export function searchBuilding() {
             }
 
             if (lat && lon) {
+                const c = CONFIG.CAMPUS_BOUNDARY.coords;
+                if (lon < c[0] || lon > c[2] || lat < c[7] || lat > c[1]) continue;
+
                 const buildingNum = houseNumber || 'Unknown';
                 const buildingName = houseName || name || '';
                 const fullName = buildingNum !== 'Unknown' ? `Building ${buildingNum}` : buildingName;

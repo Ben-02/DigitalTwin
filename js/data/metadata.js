@@ -28,7 +28,7 @@ function buildMetadataMap() {
         const osmId = entity.properties['@id']?._value;
         
         if (osmId) {
-            const match = osmId.match(/way\/(\d+)/);
+            const match = osmId.match(/(?:way|relation)\/(\d+)/);
             if (match) {
                 const elementId = parseInt(match[1]);
                 buildingMetadataMap.set(elementId, entity);
