@@ -1,9 +1,8 @@
-import { buildingMetadataMap } from '../data/metadata.js';
+import { searchBuildings } from '../data/metadata.js';
 import { showBuildingInfoWithDirections } from './infoPanel.js';
 import { flyToBuilding } from '../map/camera.js';
 import { viewer } from '../map/viewer.js';
 import { removeHighlight } from '../map/buildings.js';
-import { CONFIG } from '../config.js';
 
 let lastSearchMatches = [];
 
@@ -18,83 +17,17 @@ export function searchBuilding() {
     console.log(`🔍 Searching for: "${searchTerm}"`);
     removeHighlight();
 
-    const matches = [];
+    const results = searchBuildings(searchTerm);
 
-    for (let [elementId, entity] of buildingMetadataMap) {
-        const props = entity.properties;
-        const houseNumber = props['addr:housenumber']?._value || '';
-        const name = props.name?._value || '';
-        const houseName = props['addr:housename']?._value || '';
-
-        if (houseNumber.toLowerCase().includes(searchTerm) ||
-            name.toLowerCase().includes(searchTerm) ||
-            houseName.toLowerCase().includes(searchTerm)) {
-
-            let lat, lon;
-
-            if (entity.position) {
-                const position = entity.position.getValue(Cesium.JulianDate.now());
-                const cartographic = Cesium.Cartographic.fromCartesian(position);
-                lat = Cesium.Math.toDegrees(cartographic.latitude);
-                lon = Cesium.Math.toDegrees(cartographic.longitude);
-            } else if (entity.polygon && entity.polygon.hierarchy) {
-                const hierarchy = entity.polygon.hierarchy.getValue(Cesium.JulianDate.now());
-                const positions = hierarchy.positions;
-
-                let sumX = 0, sumY = 0, sumZ = 0;
-                positions.forEach(pos => {
-                    sumX += pos.x;
-                    sumY += pos.y;
-                    sumZ += pos.z;
-                });
-
-                const centerPos = new Cesium.Cartesian3(
-                    sumX / positions.length,
-                    sumY / positions.length,
-                    sumZ / positions.length
-                );
-
-                const cartographic = Cesium.Cartographic.fromCartesian(centerPos);
-                lat = Cesium.Math.toDegrees(cartographic.latitude);
-                lon = Cesium.Math.toDegrees(cartographic.longitude);
-            }
-
-            if (lat && lon) {
-                const c = CONFIG.CAMPUS_BOUNDARY.coords;
-                if (lon < c[0] || lon > c[2] || lat < c[7] || lat > c[1]) continue;
-
-                const buildingNum = houseNumber || 'Unknown';
-                const buildingName = houseName || name || '';
-                const fullName = buildingNum !== 'Unknown' ? `Building ${buildingNum}` : buildingName;
-                const exact = houseNumber.toLowerCase() === searchTerm;
-
-                matches.push({ entity, lat, lon, buildingNum, buildingName, fullName, exact });
-            }
-        }
-    }
-
-    if (matches.length === 0) {
+    if (results.length === 0) {
         alert(`No building found matching "${searchTerm}"`);
         return;
     }
 
-    matches.sort((a, b) => {
-        if (a.exact !== b.exact) return a.exact ? -1 : 1;
-        return a.buildingNum.localeCompare(b.buildingNum, undefined, { numeric: true });
-    });
-
-    const seen = new Set();
-    const unique = matches.filter(m => {
-        const key = m.buildingNum !== 'Unknown' ? m.buildingNum : `${m.lat.toFixed(5)},${m.lon.toFixed(5)}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-    });
-
-    if (unique.length === 1) {
-        selectResult(unique[0]);
+    if (results.length === 1) {
+        selectResult(results[0]);
     } else {
-        showResultList(unique, searchTerm);
+        showResultList(results, searchTerm);
     }
 }
 

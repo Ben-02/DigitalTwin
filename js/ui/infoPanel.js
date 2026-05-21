@@ -1,4 +1,5 @@
 import { CONFIG } from '../config.js';
+import { searchBuildings } from '../data/metadata.js';
 
 function escapeHtml(str) {
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -198,67 +199,6 @@ function showDirectionsMessage(msg, color) {
     }
 }
 
-
-function searchBuildingsFromMetadata(term, callback) {
-    import('../data/metadata.js').then(({ buildingMetadataMap }) => {
-        const results = [];
-
-        for (let [elementId, entity] of buildingMetadataMap) {
-            const props = entity.properties;
-            const num = props['addr:housenumber']?._value || '';
-            const name = props.name?._value || '';
-            const houseName = props['addr:housename']?._value || '';
-
-            if (num.toLowerCase().includes(term) ||
-                name.toLowerCase().includes(term) ||
-                houseName.toLowerCase().includes(term)) {
-
-                let lat, lon;
-                if (entity.position) {
-                    const pos = entity.position.getValue(Cesium.JulianDate.now());
-                    const carto = Cesium.Cartographic.fromCartesian(pos);
-                    lat = Cesium.Math.toDegrees(carto.latitude);
-                    lon = Cesium.Math.toDegrees(carto.longitude);
-                } else if (entity.polygon?.hierarchy) {
-                    const hierarchy = entity.polygon.hierarchy.getValue(Cesium.JulianDate.now());
-                    const positions = hierarchy.positions;
-                    let sx = 0, sy = 0, sz = 0;
-                    positions.forEach(p => { sx += p.x; sy += p.y; sz += p.z; });
-                    const center = new Cesium.Cartesian3(sx / positions.length, sy / positions.length, sz / positions.length);
-                    const carto = Cesium.Cartographic.fromCartesian(center);
-                    lat = Cesium.Math.toDegrees(carto.latitude);
-                    lon = Cesium.Math.toDegrees(carto.longitude);
-                }
-
-                if (lat && lon) {
-                    const c = CONFIG.CAMPUS_BOUNDARY.coords;
-                    if (lon < c[0] || lon > c[2] || lat < c[7] || lat > c[1]) continue;
-
-                    const buildingNum = num || 'Unknown';
-                    const buildingName = houseName || name || '';
-                    const fullName = buildingNum !== 'Unknown' ? `Building ${buildingNum}` : buildingName;
-                    const exact = num.toLowerCase() === term;
-                    results.push({ lat, lon, buildingNum, buildingName, fullName, exact });
-                }
-            }
-        }
-
-        results.sort((a, b) => {
-            if (a.exact !== b.exact) return a.exact ? -1 : 1;
-            return a.buildingNum.localeCompare(b.buildingNum, undefined, { numeric: true });
-        });
-
-        const seen = new Set();
-        const unique = results.filter(r => {
-            const key = r.buildingNum !== 'Unknown' ? r.buildingNum : `${r.lat.toFixed(5)},${r.lon.toFixed(5)}`;
-            if (seen.has(key)) return false;
-            seen.add(key);
-            return true;
-        });
-
-        callback(unique);
-    });
-}
 
 function renderSearchResults(results, containerId, selectFnName) {
     const container = document.getElementById(containerId);
@@ -478,10 +418,9 @@ window.directionsDoSearch = function() {
     const term = input ? input.value.trim().toLowerCase() : '';
     if (!term) return;
 
-    searchBuildingsFromMetadata(term, (unique) => {
-        window._dirStartResults = unique;
-        renderSearchResults(unique, 'directions-search-results', 'selectStartBuilding');
-    });
+    const results = searchBuildings(term);
+    window._dirStartResults = results;
+    renderSearchResults(results, 'directions-search-results', 'selectStartBuilding');
 };
 
 window.selectStartBuilding = function(index) {
@@ -535,10 +474,9 @@ window.destDoSearch = function() {
     const term = input ? input.value.trim().toLowerCase() : '';
     if (!term) return;
 
-    searchBuildingsFromMetadata(term, (unique) => {
-        window._destResults = unique;
-        renderSearchResults(unique, 'dest-search-results', 'selectDestBuilding');
-    });
+    const results = searchBuildings(term);
+    window._destResults = results;
+    renderSearchResults(results, 'dest-search-results', 'selectDestBuilding');
 };
 
 window.selectDestBuilding = function(index) {
