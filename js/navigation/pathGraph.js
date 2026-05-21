@@ -6,8 +6,9 @@ let spatialGrid = null;
 let gridConfig = null;
 
 export function buildPathwayGraph() {
+    const t0 = performance.now();
     console.log("🔨 Building pathway graph...");
-    
+
     if (!pathwayData || pathwayData.length === 0) {
         console.error("❌ No pathway data available!");
         return null;
@@ -81,7 +82,7 @@ export function buildPathwayGraph() {
     };
     
     buildSpatialGrid();
-    console.log(`✅ Pathway graph built: ${pathwayGraph.nodeCount} nodes, ${pathwayGraph.edgeCount} edges`);
+    console.log(`[PERF] Graph build: ${(performance.now() - t0).toFixed(1)}ms (${pathwayGraph.nodeCount} nodes, ${pathwayGraph.edgeCount} edges)`);
     return pathwayGraph;
 }
 
@@ -132,6 +133,7 @@ function buildSpatialGrid() {
 }
 
 export function findNearestNode(lat, lon) {
+    const t0 = performance.now();
     if (!pathwayGraph) return null;
     if (!spatialGrid) return findNearestNodeBruteForce(lat, lon);
 
@@ -157,6 +159,7 @@ export function findNearestNode(lat, lon) {
     }
 
     if (!nearestNode) return findNearestNodeBruteForce(lat, lon);
+    console.log(`[PERF] Nearest node lookup: ${(performance.now() - t0).toFixed(2)}ms`);
     return { node: nearestNode, distance: minDistance };
 }
 
@@ -175,8 +178,9 @@ function findNearestNodeBruteForce(lat, lon) {
 
 // ===== OPTIMIZED A* =====
 export function findPath(startNode, endNode) {
+    const t0 = performance.now();
     if (!pathwayGraph) return null;
-    
+
     console.log(`🔍 Finding path: node ${startNode.id} → node ${endNode.id}`);
     
     const gScore = new Map();
@@ -197,8 +201,9 @@ export function findPath(startNode, endNode) {
         
         // Reached destination!
         if (current === endNode.id) {
-            console.log("✅ Path found!");
-            return reconstructPath(cameFrom, current);
+            const path = reconstructPath(cameFrom, current);
+            console.log(`[PERF] A* pathfinding: ${(performance.now() - t0).toFixed(2)}ms (${closedSet.size} visited, ${path.length} path nodes)`);
+            return path;
         }
         
         // O(1) lookup - no more Array.from().find()!
@@ -229,7 +234,7 @@ export function findPath(startNode, endNode) {
         });
     }
     
-    console.log("❌ No path found");
+    console.log(`[PERF] A* pathfinding: ${(performance.now() - t0).toFixed(2)}ms (no path found, ${closedSet.size} visited)`);
     return null;
 }
 

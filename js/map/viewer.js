@@ -74,4 +74,6 @@ export function initializeViewer() {
             roll: 0
         }
     });
+
+    viewer.scene.debugShowFramesPerSecond = true;
 }

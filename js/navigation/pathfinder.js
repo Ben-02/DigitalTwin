@@ -137,6 +137,7 @@ function zoomToShowRoute(startLat, startLon, targetLat, targetLon) {
 
 // NEW: Draw route using pathfinding
 export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
+    const tTotal = performance.now();
     console.log(`🗺️ Drawing route to ${targetName}...`);
 
     const startPoint = customStartPoint || userLocation;
@@ -157,8 +158,10 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
     removeRoutePins();
 
     // Find nearest nodes
+    const tNodes = performance.now();
     const startResult = findNearestNode(startPoint.latitude, startPoint.longitude);
     const endResult = findNearestNode(targetLat, targetLon);
+    console.log(`[PERF]   Nearest node lookups: ${(performance.now() - tNodes).toFixed(2)}ms`);
     
     if (!startResult || !endResult) {
         console.error("Could not find pathway nodes");
@@ -178,6 +181,7 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
     }
     
     // Convert path (node IDs) to coordinates
+    const tConvert = performance.now();
     const pathCoordinates = [];
     
     // Add start point
@@ -193,6 +197,7 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
 
     // Add end point (target building)
     pathCoordinates.push(targetLon, targetLat);
+    console.log(`[PERF]   Path coord conversion: ${(performance.now() - tConvert).toFixed(2)}ms`);
 
     // Store path for Start Trip feature
     currentRoutePath = [];
@@ -205,6 +210,7 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
     currentDestination = { lat: targetLat, lon: targetLon, name: targetName };
 
     // Draw the route
+    const tDraw = performance.now();
     currentRoute = viewer.entities.add({
         name: `Route to ${targetName}`,
         polyline: {
@@ -218,6 +224,7 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
             clampToGround: true
         }
     });
+    console.log(`[PERF]   Cesium polyline creation: ${(performance.now() - tDraw).toFixed(2)}ms`);
 
     if (!navigationActive) {
         addRoutePins(startPoint.latitude, startPoint.longitude, targetLat, targetLon);
@@ -255,6 +262,7 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
         }, 500);
     }
     
+    console.log(`[PERF] drawRouteTo total: ${(performance.now() - tTotal).toFixed(1)}ms`);
     return {
         distance: totalDistance,
         walkingTime: Math.ceil(totalDistance / 80),

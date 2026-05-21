@@ -299,6 +299,7 @@ function findClosestRouteIndex(lat, lon) {
 
 // ===== GPS UPDATE HANDLER =====
 function onPositionUpdate(position) {
+    const tTick = performance.now();
     if (!isNavigating) return;
     gpsErrorCount = 0;
 
@@ -335,6 +336,7 @@ function onPositionUpdate(position) {
 
     previousLat = lat;
     previousLon = lon;
+    console.log(`[PERF] GPS tick: ${(performance.now() - tTick).toFixed(2)}ms (moved ${moved.toFixed(1)}m, off-route ${closest.dist.toFixed(1)}m)`);
 }
 
 function onPositionError(error) {
@@ -482,11 +484,13 @@ function checkOffRoute(minDist) {
             updateInstructionBanner('Recalculating...', '', '#e67e22');
             offRouteTimer = setTimeout(() => {
                 if (!isNavigating) return;
+                const tReroute = performance.now();
                 import('./pathfinder.js').then(({ drawRouteTo, getCurrentRoutePath }) => {
                     drawRouteTo(destinationLat, destinationLon, destinationName);
                     routePath = getCurrentRoutePath();
                     buildCumulativeDistances();
                     lastClosestIdx = 0;
+                    console.log(`[PERF] Off-route recalculation: ${(performance.now() - tReroute).toFixed(1)}ms`);
                 });
                 offRouteTimer = null;
             }, 4000);
