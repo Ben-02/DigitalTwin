@@ -1,5 +1,6 @@
 import { CONFIG } from '../config.js';
 import { searchBuildings } from '../data/metadata.js';
+import { isInsideCampus } from '../utils/helper.js';
 
 function escapeHtml(str) {
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -300,7 +301,7 @@ window.directionsFromGPS = function() {
     if (!pendingDirections) return;
     const { lat, lon, name } = pendingDirections;
 
-    import('../map/userLocation.js').then(({ userLocation: loc, isInsideCampus }) => {
+    import('../map/userLocation.js').then(({ userLocation: loc }) => {
         if (!loc) {
             showDirectionsMessage('Location not available. Enable location services or use another option.', '#e74c3c');
             return;

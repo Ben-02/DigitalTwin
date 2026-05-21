@@ -2,7 +2,7 @@ import { viewer, scheduleRender } from '../map/viewer.js';
 import { userLocation } from '../map/userLocation.js';
 import { setLastDestination, clearLastDestination } from '../map/userLocation.js';
 import { findNearestNode, findPath, getNodeById } from './pathGraph.js';
-import { calculateDistance } from '../utils/helper.js';
+import { calculateDistance, isInsideCampus } from '../utils/helper.js';
 import { CONFIG } from '../config.js';
 
 let currentRoutePath = [];
@@ -285,7 +285,7 @@ function showRouteInfo(distance, targetName, usingCustomStart = false) {
     const infoContent = document.getElementById('info-content');
     const walkingTime = Math.ceil(distance / CONFIG.NAVIGATION.WALKING_SPEED);
 
-    import('../map/userLocation.js').then(({ userLocation, isInsideCampus, getIsManualLocation }) => {
+    import('../map/userLocation.js').then(({ userLocation, getIsManualLocation }) => {
         const onCampus = userLocation && isInsideCampus(
             userLocation.latitude,
             userLocation.longitude

@@ -1,6 +1,7 @@
 import { viewer, scheduleRender } from './viewer.js';
 import { CONFIG } from '../config.js';
 import { flyToCampus } from './camera.js';
+import { isInsideCampus } from '../utils/helper.js';
 
 export let userLocation = null;
 export let userLocationMarker = null;
@@ -424,21 +425,3 @@ window.updateUserLocation = updateUserLocation;
 window.cancelManualLocationMode = cancelManualLocationMode;
 window.revertToGPSLocation = revertToGPSLocation;
 
-export function isInsideCampus(lat, lon) {
-    const coords = CONFIG.CAMPUS_BOUNDARY.coords;
-    const vertices = [];
-    for (let i = 0; i < coords.length - 2; i += 2) {
-        vertices.push([coords[i + 1], coords[i]]);
-    }
-
-    let inside = false;
-    for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
-        const [yi, xi] = vertices[i];
-        const [yj, xj] = vertices[j];
-        if (((yi > lat) !== (yj > lat)) &&
-            (lon < (xj - xi) * (lat - yi) / (yj - yi) + xi)) {
-            inside = !inside;
-        }
-    }
-    return inside;
-}
