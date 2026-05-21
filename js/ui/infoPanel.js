@@ -140,7 +140,6 @@ export function showManualBuildingInfo(data, lat, lon) {
     infoPanel.style.display = 'block';
 }
 
-// ===== DIRECTIONS PANEL =====
 
 function showDirectionsPanel() {
     if (!pendingDirections) return;
@@ -199,7 +198,6 @@ function showDirectionsMessage(msg, color) {
     }
 }
 
-// ===== SHARED SEARCH HELPER =====
 
 function searchBuildingsFromMetadata(term, callback) {
     import('../data/metadata.js').then(({ buildingMetadataMap }) => {
@@ -287,7 +285,6 @@ function renderSearchResults(results, containerId, selectFnName) {
     container.innerHTML = html;
 }
 
-// ===== RE-SELECT PANELS =====
 
 export function showStartReselect(destLat, destLon, destName) {
     isReselectingStart = true;
@@ -384,7 +381,6 @@ export function showDestinationReselect(startName, savedStart) {
     infoPanel.style.display = 'block';
 }
 
-// ===== WINDOW FUNCTIONS =====
 
 window.showDirections = function() {
     showDirectionsPanel();
@@ -522,7 +518,6 @@ window.directionsGoBack = function() {
     }
 };
 
-// ===== DESTINATION RE-SELECT HANDLERS =====
 
 window.destSearchBuilding = function() {
     const section = document.getElementById('dest-search-section');

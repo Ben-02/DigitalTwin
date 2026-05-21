@@ -3,7 +3,7 @@ import { updatePositionDuringNavigation, userLocation } from '../map/userLocatio
 import { osmBuildings } from '../map/buildings.js';
 import { updateRouteDisplay, clearRoute, setNavigationActive } from './pathfinder.js';
 
-// Navigation state
+
 let isNavigating = false;
 let watchId = null;
 let routePath = [];
@@ -20,19 +20,18 @@ let smoothLon = null;
 let lastClosestIdx = 0;
 let gpsErrorCount = 0;
 
-// Camera follow state
+
 let isFollowingUser = true;
 let userInteracting = false;
 let interactionTimer = null;
 
-// Cached DOM elements (set once in startTrip)
+
 let navBanner = null;
 let navMainText = null;
 let navSubText = null;
 let navDistEl = null;
 let navTimeEl = null;
 
-// ===== START NAVIGATION =====
 export function startTrip(path, destName, destLat, destLon) {
     if (!path || path.length === 0) {
         alert('No route available. Please search for a building first.');
@@ -54,7 +53,6 @@ export function startTrip(path, destName, destLat, destLon) {
     lastClosestIdx = 0;
     gpsErrorCount = 0;
 
-    // Cache DOM elements for frequent updates
     navBanner = document.getElementById('nav-instruction-banner');
     navMainText = document.getElementById('nav-main-instruction');
     navSubText = document.getElementById('nav-sub-instruction');
@@ -63,20 +61,16 @@ export function startTrip(path, destName, destLat, destLon) {
 
     console.log(`🚀 Starting navigation to ${destName}`);
 
-    // Hide search panel and help button during navigation
     const overlay = document.getElementById('ui-overlay');
     if (overlay) overlay.style.display = 'none';
     const helpBtn = document.getElementById('help-btn');
     if (helpBtn) helpBtn.style.display = 'none';
 
-    // Show navigation UI
     showNavigationUI();
     updateInstructionBanner('Starting navigation...', '', '#2c3e50');
 
-    // Add touch/mouse interaction listeners
     addInteractionListeners();
 
-    // Start watching GPS
     if (navigator.geolocation) {
         watchId = navigator.geolocation.watchPosition(
             onPositionUpdate,
@@ -85,14 +79,12 @@ export function startTrip(path, destName, destLat, destLon) {
         );
     }
 
-    // Initial camera zoom to user
     if (userLocation) {
         zoomToUser(userLocation.latitude, userLocation.longitude, 0);
         updateNavigationUI(userLocation.latitude, userLocation.longitude);
     }
 }
 
-// ===== STOP NAVIGATION =====
 export function stopTrip() {
     isNavigating = false;
     setNavigationActive(false);
@@ -112,19 +104,15 @@ export function stopTrip() {
         interactionTimer = null;
     }
 
-    // Remove interaction listeners
     removeInteractionListeners();
 
-    // Remove re-center button
     const recenterBtn = document.getElementById('nav-recenter-btn');
     if (recenterBtn) recenterBtn.remove();
 
-    // Restore tile quality
     if (osmBuildings) {
         osmBuildings.maximumScreenSpaceError = 16;
     }
 
-    // Fly back to overview
     viewer.camera.flyTo({
         destination: Cesium.Cartesian3.fromDegrees(
             previousLon || 115.8945,
@@ -141,13 +129,11 @@ export function stopTrip() {
 
     hideNavigationUI();
     clearRoute(true);
-    // Restore normal quality after navigation
     if (osmBuildings) {
         osmBuildings.maximumScreenSpaceError = 16;
     }
     viewer.resolutionScale = window.innerWidth <= 768 ? 0.7 : 1.0;
     scheduleRender();
-    // Restore search panel, help button, and campus view button
     const overlay = document.getElementById('ui-overlay');
     if (overlay) overlay.style.display = '';
     const helpBtn = document.getElementById('help-btn');
@@ -166,7 +152,6 @@ export function stopTrip() {
     console.log('🛑 Navigation stopped');
 }
 
-// ===== INTERACTION DETECTION (Camera Fight Fix) =====
 function addInteractionListeners() {
     const canvas = viewer.scene.canvas;
     canvas.addEventListener('pointerdown', onInteractionStart);
@@ -188,7 +173,6 @@ function onInteractionStart() {
     userInteracting = true;
     isFollowingUser = false;
 
-    // Increase LOD error = lower quality = faster rendering during interaction
     if (osmBuildings) {
         osmBuildings.maximumScreenSpaceError = 64;
         scheduleRender();
@@ -205,7 +189,6 @@ function onInteractionStart() {
 function onInteractionEnd() {
     if (!isNavigating) return;
 
-    // Restore quality after 500ms
     if (interactionTimer) clearTimeout(interactionTimer);
     interactionTimer = setTimeout(() => {
         userInteracting = false;
@@ -216,7 +199,6 @@ function onInteractionEnd() {
     }, 500);
 }
 
-// ===== RE-CENTER BUTTON =====
 function showRecenterButton() {
     let btn = document.getElementById('nav-recenter-btn');
     if (!btn) {
@@ -269,7 +251,6 @@ function recenterCamera() {
     }
 }
 
-// ===== CLOSEST ROUTE INDEX (computed once per GPS tick) =====
 function findClosestRouteIndex(lat, lon) {
     if (!routePath || routePath.length === 0) return { idx: 0, dist: Infinity };
 
@@ -285,7 +266,6 @@ function findClosestRouteIndex(lat, lon) {
         if (d < bestDist) { bestDist = d; bestIdx = i; }
     }
 
-    // Fallback to full scan if window result seems off-route
     if (bestDist > 50) {
         for (let i = 0; i < routePath.length; i++) {
             const d = haversineDistance(lat, lon, routePath[i].lat, routePath[i].lon);
@@ -297,9 +277,7 @@ function findClosestRouteIndex(lat, lon) {
     return { idx: bestIdx, dist: bestDist };
 }
 
-// ===== GPS UPDATE HANDLER =====
 function onPositionUpdate(position) {
-    const tTick = performance.now();
     if (!isNavigating) return;
     gpsErrorCount = 0;
 
@@ -318,7 +296,6 @@ function onPositionUpdate(position) {
 
     updatePositionDuringNavigation(lat, lon);
 
-    // Only follow camera if user hasn't manually interacted
     if ((moved > 5 || previousLat === null) && isFollowingUser) {
         zoomToUser(lat, lon, currentHeading);
     }
@@ -336,7 +313,6 @@ function onPositionUpdate(position) {
 
     previousLat = lat;
     previousLon = lon;
-    console.log(`[PERF] GPS tick: ${(performance.now() - tTick).toFixed(2)}ms (moved ${moved.toFixed(1)}m, off-route ${closest.dist.toFixed(1)}m)`);
 }
 
 function onPositionError(error) {
@@ -351,7 +327,6 @@ function onPositionError(error) {
     }
 }
 
-// ===== CAMERA FOLLOW =====
 function zoomToUser(lat, lon, heading) {
     viewer.camera.setView({
         destination: Cesium.Cartesian3.fromDegrees(lon, lat, 150),
@@ -364,7 +339,6 @@ function zoomToUser(lat, lon, heading) {
     scheduleRender();
 }
 
-// ===== GPS SMOOTHING =====
 function smoothPosition(lat, lon) {
     if (smoothLat === null) {
         smoothLat = lat;
@@ -376,7 +350,6 @@ function smoothPosition(lat, lon) {
     return { lat: smoothLat, lon: smoothLon };
 }
 
-// ===== BEARING CALCULATION =====
 function calculateBearing(lat1, lon1, lat2, lon2) {
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const lat1R = lat1 * Math.PI / 180;
@@ -387,7 +360,6 @@ function calculateBearing(lat1, lon1, lat2, lon2) {
     return ((Math.atan2(y, x) * 180 / Math.PI) + 360) % 360;
 }
 
-// ===== DISTANCE CALCULATION =====
 function haversineDistance(lat1, lon1, lat2, lon2) {
     const R = 6371e3;
     const toRad = Math.PI / 180;
@@ -397,7 +369,6 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
     return R * Math.sqrt(dLat * dLat + dLon * dLon * cosLat * cosLat);
 }
 
-// ===== TURN-BY-TURN INSTRUCTIONS =====
 function getNextInstruction(userLat, userLon, closestIdx) {
     if (!routePath || routePath.length < 2) {
         return { text: `Head to ${destinationName}`, distance: 0 };
@@ -431,7 +402,6 @@ function getTurnAngle(lat1, lon1, lat2, lon2, lat3, lon3) {
     return angle;
 }
 
-// ===== CUMULATIVE DISTANCE PRE-COMPUTATION =====
 function buildCumulativeDistances() {
     cumulativeDistances = [0];
     for (let i = 0; i < routePath.length - 1; i++) {
@@ -444,7 +414,6 @@ function buildCumulativeDistances() {
     }
 }
 
-// ===== REMAINING DISTANCE =====
 function getRemainingDistance(closestIdx, userLat, userLon) {
     if (!routePath || routePath.length === 0) return 0;
 
@@ -452,7 +421,6 @@ function getRemainingDistance(closestIdx, userLat, userLon) {
         const totalRoute = cumulativeDistances[cumulativeDistances.length - 1];
         const distToClosest = cumulativeDistances[closestIdx];
 
-        // Project user onto current segment for sub-segment accuracy
         const A = routePath[closestIdx];
         const B = routePath[closestIdx + 1];
         const segLen = haversineDistance(A.lat, A.lon, B.lat, B.lon);
@@ -475,7 +443,6 @@ function getRemainingDistance(closestIdx, userLat, userLon) {
     return Math.round(haversineDistance(userLat, userLon, destinationLat, destinationLon));
 }
 
-// ===== OFF ROUTE DETECTION =====
 function checkOffRoute(minDist) {
     if (!routePath || routePath.length === 0) return;
 
@@ -484,13 +451,11 @@ function checkOffRoute(minDist) {
             updateInstructionBanner('Recalculating...', '', '#e67e22');
             offRouteTimer = setTimeout(() => {
                 if (!isNavigating) return;
-                const tReroute = performance.now();
                 import('./pathfinder.js').then(({ drawRouteTo, getCurrentRoutePath }) => {
                     drawRouteTo(destinationLat, destinationLon, destinationName);
                     routePath = getCurrentRoutePath();
                     buildCumulativeDistances();
                     lastClosestIdx = 0;
-                    console.log(`[PERF] Off-route recalculation: ${(performance.now() - tReroute).toFixed(1)}ms`);
                 });
                 offRouteTimer = null;
             }, 4000);
@@ -503,7 +468,6 @@ function checkOffRoute(minDist) {
     }
 }
 
-// ===== ARRIVAL =====
 function onArrived() {
     updateInstructionBanner(`Arrived at ${destinationName}!`, '', '#27ae60');
     removeInteractionListeners();
@@ -513,15 +477,13 @@ function onArrived() {
     }, 2000);
 }
 
-// ===== UI UPDATES =====
 function updateNavigationUI(userLat, userLon, closest) {
     if (!userLat || !userLon) {
         updateInstructionBanner('Starting navigation...', '', '#2c3e50');
-        // Boost performance during navigation
         if (osmBuildings) {
             osmBuildings.maximumScreenSpaceError = 32;
         }
-        viewer.resolutionScale = 0.5; // Lower resolution during navigation
+        viewer.resolutionScale = 0.5;
         scheduleRender();
         updateDistanceBar(0, 0);
         return;

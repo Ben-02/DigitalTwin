@@ -30,7 +30,7 @@ export function initializeViewer() {
         maximumRenderTimeChange: Infinity
     });
 
-    // Custom scroll-wheel zoom — CesiumJS default is too aggressive
+    // CesiumJS default scroll zoom is too aggressive
     const controller = viewer.scene.screenSpaceCameraController;
     controller.zoomEventTypes = [Cesium.CameraEventType.RIGHT_DRAG, Cesium.CameraEventType.PINCH];
     viewer.scene.canvas.addEventListener('wheel', (e) => {
@@ -42,30 +42,25 @@ export function initializeViewer() {
         scheduleRender();
     }, { passive: false });
 
-    // Disable expensive visual effects
     viewer.shadows = false;
     viewer.scene.fog.enabled = false;
     viewer.scene.skyAtmosphere.show = false;
     viewer.scene.globe.showGroundAtmosphere = false;
     viewer.scene.globe.enableLighting = false;
 
-    // Mobile: reduce resolution for better performance
     if (window.innerWidth <= 768) {
-        viewer.resolutionScale = 0.7; // Better performance on mobile
+        viewer.resolutionScale = 0.7;
     }
 
-    // Increase tile cache - keeps more tiles in memory during navigation
     viewer.scene.globe.tileCacheSize = 500;
 
-    // Only load terrain/imagery within the campus boundary
     viewer.scene.globe.cartographicLimitRectangle = Cesium.Rectangle.fromDegrees(
-        CONFIG.CAMPUS_BOUNDARY.coords[0],   // west
-        CONFIG.CAMPUS_BOUNDARY.coords[7],   // south
-        CONFIG.CAMPUS_BOUNDARY.coords[2],   // east
-        CONFIG.CAMPUS_BOUNDARY.coords[1]    // north
+        CONFIG.CAMPUS_BOUNDARY.coords[0],
+        CONFIG.CAMPUS_BOUNDARY.coords[7],
+        CONFIG.CAMPUS_BOUNDARY.coords[2],
+        CONFIG.CAMPUS_BOUNDARY.coords[1]
     );
 
-    // Start camera at campus so there's no globe-spinning on load
     viewer.camera.setView({
         destination: Cesium.Cartesian3.fromDegrees(115.8924, -32.0215, 3400),
         orientation: {
@@ -74,6 +69,4 @@ export function initializeViewer() {
             roll: 0
         }
     });
-
-    viewer.scene.debugShowFramesPerSecond = true;
 }

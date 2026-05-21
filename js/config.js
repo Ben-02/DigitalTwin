@@ -1,4 +1,3 @@
-// Configuration and constants
 export const CONFIG = {
     CESIUM_TOKEN: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI2NjA3Mzc5Ny1hM2UzLTQ2ZGMtYWNkZC0xZmYxZDUyY2ZkMmMiLCJpZCI6MzUwNDE4LCJpYXQiOjE3NzYzNDkzMTd9.aEdahEnjSR7mEBfh3xzeCpOPqypUM572sWMD3bV_Vt0',
     

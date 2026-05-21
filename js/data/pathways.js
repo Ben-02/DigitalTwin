@@ -9,7 +9,7 @@ export function analyzePathwayData() {
     }
     
     const entities = campusDataSource.entities.values;
-    pathwayData.length = 0; // ← Correct! Clears array without reassigning
+    pathwayData.length = 0;
     
     console.log("🔍 Analyzing GeoJSON for pathway data...");
     

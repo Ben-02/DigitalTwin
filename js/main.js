@@ -11,20 +11,13 @@ import { closeInfoPanel } from './ui/infoPanel.js';
 
 async function initializeApp() {
     try {
-        const tStartup = performance.now();
         console.log("🚀 Initializing app...");
 
-        const tViewer = performance.now();
         initializeViewer();
-        console.log(`[PERF] Viewer init: ${(performance.now() - tViewer).toFixed(1)}ms`);
 
-        // Fire GPS request early — it runs in parallel with data loading
         const gpsPromise = getUserLocation();
 
-        // Load buildings tileset and campus metadata in parallel
-        const tAssets = performance.now();
         await Promise.all([loadOSMBuildings(), loadCampusMetadata()]);
-        console.log(`[PERF] Asset loading (buildings + metadata): ${(performance.now() - tAssets).toFixed(1)}ms`);
 
         const pathways = analyzePathwayData();
         console.log(`Pathways analyzed: ${pathways.length}`);
@@ -34,7 +27,6 @@ async function initializeApp() {
             console.error("⚠️ Failed to build pathway graph");
         }
 
-        // Wait for GPS if it hasn't resolved yet
         await gpsPromise;
 
         drawCampusBoundary();
@@ -44,7 +36,7 @@ async function initializeApp() {
         scheduleRender();
         import('./navigation/tripMode.js').catch(() => {});
         hideLoadingScreen();
-        console.log(`[PERF] Total app startup: ${(performance.now() - tStartup).toFixed(1)}ms`);
+        console.log("🎉 Campus loaded successfully!");
 
     } catch (error) {
         console.error("❌ Error loading campus:", error);

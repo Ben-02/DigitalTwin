@@ -77,7 +77,6 @@ export function hasActiveRoute() {
 
 let currentRoute = null;
 
-// Calculate distance between two points
 function calculateDistance(lat1, lon1, lat2, lon2) {
     const R = 6371e3;
     const toRad = Math.PI / 180;
@@ -135,9 +134,7 @@ function zoomToShowRoute(startLat, startLon, targetLat, targetLon) {
     console.log("📷 Camera adjusted to show full route");
 }
 
-// NEW: Draw route using pathfinding
 export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
-    const tTotal = performance.now();
     console.log(`🗺️ Drawing route to ${targetName}...`);
 
     const startPoint = customStartPoint || userLocation;
@@ -151,17 +148,13 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
         setLastDestination(targetLat, targetLon, targetName);
     }
 
-    // Remove previous route
     if (currentRoute) {
         viewer.entities.remove(currentRoute);
     }
     removeRoutePins();
 
-    // Find nearest nodes
-    const tNodes = performance.now();
     const startResult = findNearestNode(startPoint.latitude, startPoint.longitude);
     const endResult = findNearestNode(targetLat, targetLon);
-    console.log(`[PERF]   Nearest node lookups: ${(performance.now() - tNodes).toFixed(2)}ms`);
     
     if (!startResult || !endResult) {
         console.error("Could not find pathway nodes");
@@ -171,7 +164,6 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
     console.log(`Start node: ${startResult.distance.toFixed(1)}m away`);
     console.log(`End node: ${endResult.distance.toFixed(1)}m away`);
     
-    // Find path between nodes
     const path = findPath(startResult.node, endResult.node);
     
     if (!path) {
@@ -180,26 +172,16 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
         return;
     }
     
-    // Convert path (node IDs) to coordinates
-    const tConvert = performance.now();
     const pathCoordinates = [];
-    
-    // Add start point
     pathCoordinates.push(startPoint.longitude, startPoint.latitude);
-
-    // Add path nodes
     path.forEach(nodeId => {
         const node = getNodeById(nodeId);
         if (node) {
             pathCoordinates.push(node.longitude, node.latitude);
         }
     });
-
-    // Add end point (target building)
     pathCoordinates.push(targetLon, targetLat);
-    console.log(`[PERF]   Path coord conversion: ${(performance.now() - tConvert).toFixed(2)}ms`);
 
-    // Store path for Start Trip feature
     currentRoutePath = [];
     currentRoutePath.push({ lat: startPoint.latitude, lon: startPoint.longitude });
     path.forEach(nodeId => {
@@ -209,8 +191,6 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
     currentRoutePath.push({ lat: targetLat, lon: targetLon });
     currentDestination = { lat: targetLat, lon: targetLon, name: targetName };
 
-    // Draw the route
-    const tDraw = performance.now();
     currentRoute = viewer.entities.add({
         name: `Route to ${targetName}`,
         polyline: {
@@ -224,7 +204,6 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
             clampToGround: true
         }
     });
-    console.log(`[PERF]   Cesium polyline creation: ${(performance.now() - tDraw).toFixed(2)}ms`);
 
     if (!navigationActive) {
         addRoutePins(startPoint.latitude, startPoint.longitude, targetLat, targetLon);
@@ -235,7 +214,6 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
         collapseSearchPanel();
     }
 
-    // Calculate total distance
     let totalDistance = startResult.distance + endResult.distance;
     for (let i = 0; i < path.length - 1; i++) {
         const node1 = getNodeById(path[i]);
@@ -262,7 +240,6 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
         }, 500);
     }
     
-    console.log(`[PERF] drawRouteTo total: ${(performance.now() - tTotal).toFixed(1)}ms`);
     return {
         distance: totalDistance,
         walkingTime: Math.ceil(totalDistance / 80),
@@ -270,7 +247,6 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
     };
 }
 
-// Fallback: direct route if pathfinding fails
 function drawDirectRoute(targetLat, targetLon, targetName) {
     const startPoint = customStartPoint || userLocation;
     currentRoute = viewer.entities.add({
@@ -316,7 +292,6 @@ function showRouteInfo(distance, targetName, usingCustomStart = false) {
     const infoContent = document.getElementById('info-content');
     const walkingTime = Math.ceil(distance / 80);
 
-    // Check if user is inside campus and using GPS
     import('../map/userLocation.js').then(({ userLocation, isInsideCampus, getIsManualLocation }) => {
         const onCampus = userLocation && isInsideCampus(
             userLocation.latitude,

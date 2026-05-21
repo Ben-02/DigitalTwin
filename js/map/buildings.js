@@ -11,7 +11,6 @@ export async function loadOSMBuildings() {
 
     osmBuildings.maximumScreenSpaceError = 16;
 
-    // Clip buildings outside campus boundary
     const coords = CONFIG.CAMPUS_BOUNDARY.coords;
     osmBuildings.clippingPolygons = new Cesium.ClippingPolygonCollection({
         polygons: [
@@ -23,7 +22,7 @@ export async function loadOSMBuildings() {
     });
 
     viewer.scene.primitives.add(osmBuildings);
-    scheduleRender(); // ← Tell Cesium to re-render
+    scheduleRender();
 
     console.log("✅ 3D buildings loaded!");
 }
@@ -35,13 +34,13 @@ export function highlightBuilding(feature) {
     
     highlightedFeature = feature;
     feature.color = Cesium.Color.CYAN.withAlpha(0.8);
-    scheduleRender(); // ← Re-render after color change
+    scheduleRender();
     
     setTimeout(() => {
         if (highlightedFeature === feature) {
             feature.color = Cesium.Color.WHITE;
             highlightedFeature = null;
-            scheduleRender(); // ← Re-render after color reset
+            scheduleRender();
         }
     }, 3000);
 }
@@ -50,6 +49,6 @@ export function removeHighlight() {
     if (highlightedFeature) {
         highlightedFeature.color = Cesium.Color.WHITE;
         highlightedFeature = null;
-        scheduleRender(); // ← Re-render after removing highlight
+        scheduleRender();
     }
 }

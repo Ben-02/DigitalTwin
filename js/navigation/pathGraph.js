@@ -6,7 +6,6 @@ let spatialGrid = null;
 let gridConfig = null;
 
 export function buildPathwayGraph() {
-    const t0 = performance.now();
     console.log("🔨 Building pathway graph...");
 
     if (!pathwayData || pathwayData.length === 0) {
@@ -35,7 +34,7 @@ export function buildPathwayGraph() {
                 connections: []
             };
             nodes.set(key, node);
-            nodeById.set(node.id, node); // ← Index by ID for fast lookup
+            nodeById.set(node.id, node);
         }
         return nodes.get(key);
     }
@@ -82,7 +81,7 @@ export function buildPathwayGraph() {
     };
     
     buildSpatialGrid();
-    console.log(`[PERF] Graph build: ${(performance.now() - t0).toFixed(1)}ms (${pathwayGraph.nodeCount} nodes, ${pathwayGraph.edgeCount} edges)`);
+    console.log(`✅ Pathway graph built: ${pathwayGraph.nodeCount} nodes, ${pathwayGraph.edgeCount} edges`);
     return pathwayGraph;
 }
 
@@ -95,7 +94,6 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
     return R * Math.sqrt(dLat * dLat + dLon * dLon * cosLat * cosLat);
 }
 
-// ===== SPATIAL GRID (O(1) nearest-node lookup) =====
 function buildSpatialGrid() {
     if (!pathwayGraph) return;
 
@@ -133,7 +131,6 @@ function buildSpatialGrid() {
 }
 
 export function findNearestNode(lat, lon) {
-    const t0 = performance.now();
     if (!pathwayGraph) return null;
     if (!spatialGrid) return findNearestNodeBruteForce(lat, lon);
 
@@ -159,7 +156,6 @@ export function findNearestNode(lat, lon) {
     }
 
     if (!nearestNode) return findNearestNodeBruteForce(lat, lon);
-    console.log(`[PERF] Nearest node lookup: ${(performance.now() - t0).toFixed(2)}ms`);
     return { node: nearestNode, distance: minDistance };
 }
 
@@ -176,9 +172,7 @@ function findNearestNodeBruteForce(lat, lon) {
     return { node: nearestNode, distance: minDistance };
 }
 
-// ===== OPTIMIZED A* =====
 export function findPath(startNode, endNode) {
-    const t0 = performance.now();
     if (!pathwayGraph) return null;
 
     console.log(`🔍 Finding path: node ${startNode.id} → node ${endNode.id}`);
@@ -188,25 +182,20 @@ export function findPath(startNode, endNode) {
     const closedSet = new Set();
     const openSet = new MinHeap();
     
-    // Lazy initialization - only set scores when needed
     gScore.set(startNode.id, 0);
     openSet.push({ id: startNode.id, f: heuristic(startNode, endNode) });
     
     while (!openSet.isEmpty()) {
         const { id: current } = openSet.pop();
         
-        // Skip if already processed
         if (closedSet.has(current)) continue;
         closedSet.add(current);
-        
-        // Reached destination!
+
         if (current === endNode.id) {
-            const path = reconstructPath(cameFrom, current);
-            console.log(`[PERF] A* pathfinding: ${(performance.now() - t0).toFixed(2)}ms (${closedSet.size} visited, ${path.length} path nodes)`);
-            return path;
+            console.log("✅ Path found!");
+            return reconstructPath(cameFrom, current);
         }
         
-        // O(1) lookup - no more Array.from().find()!
         const currentNode = nodeById.get(current);
         if (!currentNode) continue;
         
@@ -220,7 +209,6 @@ export function findPath(startNode, endNode) {
             const neighborG = gScore.get(neighborId) ?? Infinity;
             
             if (tentativeG < neighborG) {
-                // O(1) lookup for neighbor!
                 const neighborNode = nodeById.get(neighborId);
                 if (!neighborNode) return;
                 
@@ -234,11 +222,10 @@ export function findPath(startNode, endNode) {
         });
     }
     
-    console.log(`[PERF] A* pathfinding: ${(performance.now() - t0).toFixed(2)}ms (no path found, ${closedSet.size} visited)`);
+    console.log("❌ No path found");
     return null;
 }
 
-// ===== INDEXED MIN HEAP (supports decrease-key, no duplicate entries) =====
 class MinHeap {
     constructor() {
         this.heap = [];

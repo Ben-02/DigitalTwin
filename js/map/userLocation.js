@@ -13,7 +13,6 @@ export function getIsManualLocation() {
 let gpsLocation = null;
 let manualLocationHandler = null;
 let locationPermissionDenied = false;
-// Store last destination for route redrawing
 let lastDestination = null;
 
 export function getUserLocation() {
@@ -45,7 +44,6 @@ export function getUserLocation() {
                     console.error("❌ Error getting location:", error.message);
 
                     if (error.code === 1) {
-                        // User denied location access
                         locationPermissionDenied = true;
                         console.warn("⚠️ Location permission denied by user");
                         updateLocationLabel('denied');
@@ -53,7 +51,6 @@ export function getUserLocation() {
                         return;
                     }
 
-                    // Other errors (timeout, unavailable) - use default campus location
                     userLocation = {
                         latitude: -32.0063,
                         longitude: 115.8945,
@@ -127,7 +124,6 @@ function showUserLocationMarker() {
 }
 
 export async function enableManualLocationSetting() {
-    // Check if there's an active route — setting manual location resets it
     const { hasActiveRoute, clearRoute } = await import('../navigation/pathfinder.js');
     if (hasActiveRoute()) {
         const confirmed = confirm('Setting a new location will clear the current route and trip information. Continue?');
@@ -135,12 +131,10 @@ export async function enableManualLocationSetting() {
         clearRoute(true);
     }
 
-    // If permission was denied, try to re-request GPS first
     if (locationPermissionDenied) {
         console.log("🔄 Re-requesting location permission...");
         navigator.geolocation.getCurrentPosition(
             (position) => {
-                // Permission granted!
                 locationPermissionDenied = false;
                 userLocation = {
                     latitude: position.coords.latitude,
@@ -156,7 +150,6 @@ export async function enableManualLocationSetting() {
             },
             (error) => {
                 if (error.code === 1) {
-                    // Still denied - fall back to manual mode
                     console.warn("⚠️ Still denied, entering manual mode");
                     alert('Location is blocked in your browser settings.\nYou can set your location manually by clicking on the map.');
                     enterManualClickMode();
@@ -274,7 +267,6 @@ export function revertToGPSLocation() {
     showUserLocationMarker();
     updateLocationButtons();
     
-    // Redraw route if there's a destination
     if (lastDestination) {
         console.log("🔄 Redrawing route from GPS location...");
         
@@ -291,7 +283,6 @@ export function revertToGPSLocation() {
           (lastDestination ? '. Route has been recalculated.' : ''));
 }
 
-// NEW: Store destination when route is drawn
 export function setLastDestination(lat, lon, name) {
     lastDestination = {
         latitude: lat,
@@ -301,7 +292,6 @@ export function setLastDestination(lat, lon, name) {
     console.log(`💾 Destination saved: ${name}`);
 }
 
-// NEW: Clear destination
 export function clearLastDestination() {
     lastDestination = null;
     console.log("🗑️ Destination cleared");
@@ -402,7 +392,6 @@ export function updateUserLocation() {
     getUserLocation().then(() => {
         updateLocationButtons();
         
-        // Redraw route if there's a destination
         if (lastDestination) {
             console.log("🔄 Redrawing route from refreshed GPS location...");
             
@@ -442,7 +431,6 @@ export function isInsideCampus(lat, lon) {
         vertices.push([coords[i + 1], coords[i]]);
     }
 
-    // Ray casting point-in-polygon
     let inside = false;
     for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
         const [yi, xi] = vertices[i];
