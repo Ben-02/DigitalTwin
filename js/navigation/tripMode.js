@@ -2,6 +2,8 @@ import { viewer, scheduleRender } from '../map/viewer.js';
 import { updatePositionDuringNavigation, userLocation } from '../map/userLocation.js';
 import { osmBuildings } from '../map/buildings.js';
 import { updateRouteDisplay, clearRoute, setNavigationActive } from './pathfinder.js';
+import { calculateDistance } from '../utils/helper.js';
+import { CONFIG } from '../config.js';
 
 
 let isNavigating = false;
@@ -254,21 +256,20 @@ function recenterCamera() {
 function findClosestRouteIndex(lat, lon) {
     if (!routePath || routePath.length === 0) return { idx: 0, dist: Infinity };
 
-    const WINDOW = 15;
-    const start = Math.max(0, lastClosestIdx - WINDOW);
-    const end = Math.min(routePath.length, lastClosestIdx + WINDOW);
+    const start = Math.max(0, lastClosestIdx - CONFIG.NAVIGATION.ROUTE_SEARCH_WINDOW);
+    const end = Math.min(routePath.length, lastClosestIdx + CONFIG.NAVIGATION.ROUTE_SEARCH_WINDOW);
 
     let bestIdx = start;
     let bestDist = Infinity;
 
     for (let i = start; i < end; i++) {
-        const d = haversineDistance(lat, lon, routePath[i].lat, routePath[i].lon);
+        const d = calculateDistance(lat, lon, routePath[i].lat, routePath[i].lon);
         if (d < bestDist) { bestDist = d; bestIdx = i; }
     }
 
-    if (bestDist > 50) {
+    if (bestDist > CONFIG.NAVIGATION.FULL_SCAN_THRESHOLD) {
         for (let i = 0; i < routePath.length; i++) {
-            const d = haversineDistance(lat, lon, routePath[i].lat, routePath[i].lon);
+            const d = calculateDistance(lat, lon, routePath[i].lat, routePath[i].lon);
             if (d < bestDist) { bestDist = d; bestIdx = i; }
         }
     }
@@ -287,16 +288,16 @@ function onPositionUpdate(position) {
     const { lat, lon } = smoothPosition(rawLat, rawLon);
 
     const moved = previousLat !== null
-        ? haversineDistance(previousLat, previousLon, lat, lon)
+        ? calculateDistance(previousLat, previousLon, lat, lon)
         : 0;
 
-    if (moved > 3) {
+    if (moved > CONFIG.NAVIGATION.HEADING_MOVE_THRESHOLD) {
         currentHeading = calculateBearing(previousLat, previousLon, lat, lon);
     }
 
     updatePositionDuringNavigation(lat, lon);
 
-    if ((moved > 5 || previousLat === null) && isFollowingUser) {
+    if ((moved > CONFIG.NAVIGATION.CAMERA_FOLLOW_THRESHOLD || previousLat === null) && isFollowingUser) {
         zoomToUser(lat, lon, currentHeading);
     }
 
@@ -305,8 +306,8 @@ function onPositionUpdate(position) {
     checkOffRoute(closest.dist);
     updateRouteDisplay(lat, lon, closest.idx);
 
-    const distToDest = haversineDistance(lat, lon, destinationLat, destinationLon);
-    if (distToDest < 20) {
+    const distToDest = calculateDistance(lat, lon, destinationLat, destinationLon);
+    if (distToDest < CONFIG.NAVIGATION.ARRIVAL_THRESHOLD) {
         onArrived();
         return;
     }
@@ -320,7 +321,7 @@ function onPositionError(error) {
     gpsErrorCount++;
     console.error('GPS error during navigation:', error.message);
 
-    if (gpsErrorCount >= 3) {
+    if (gpsErrorCount >= CONFIG.NAVIGATION.GPS_ERROR_LIMIT) {
         updateInstructionBanner('GPS signal lost', 'Check location settings', '#e74c3c');
     } else {
         updateInstructionBanner('Searching for GPS...', '', '#e67e22');
@@ -345,8 +346,9 @@ function smoothPosition(lat, lon) {
         smoothLon = lon;
         return { lat, lon };
     }
-    smoothLat = lat * 0.7 + smoothLat * 0.3;
-    smoothLon = lon * 0.7 + smoothLon * 0.3;
+    const alpha = CONFIG.NAVIGATION.GPS_SMOOTHING_FACTOR;
+    smoothLat = lat * alpha + smoothLat * (1 - alpha);
+    smoothLon = lon * alpha + smoothLon * (1 - alpha);
     return { lat: smoothLat, lon: smoothLon };
 }
 
@@ -358,15 +360,6 @@ function calculateBearing(lat1, lon1, lat2, lon2) {
     const x = Math.cos(lat1R) * Math.sin(lat2R) -
                Math.sin(lat1R) * Math.cos(lat2R) * Math.cos(dLon);
     return ((Math.atan2(y, x) * 180 / Math.PI) + 360) % 360;
-}
-
-function haversineDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371e3;
-    const toRad = Math.PI / 180;
-    const dLat = (lat2 - lat1) * toRad;
-    const dLon = (lon2 - lon1) * toRad;
-    const cosLat = Math.cos((lat1 + lat2) / 2 * toRad);
-    return R * Math.sqrt(dLat * dLat + dLon * dLon * cosLat * cosLat);
 }
 
 function getNextInstruction(userLat, userLon, closestIdx) {
@@ -381,15 +374,15 @@ function getNextInstruction(userLat, userLon, closestIdx) {
             routePath[i+1].lat, routePath[i+1].lon
         );
 
-        if (Math.abs(angle) > 25) {
-            const distToTurn = haversineDistance(userLat, userLon, routePath[i].lat, routePath[i].lon);
+        if (Math.abs(angle) > CONFIG.NAVIGATION.TURN_ANGLE_THRESHOLD) {
+            const distToTurn = calculateDistance(userLat, userLon, routePath[i].lat, routePath[i].lon);
             const dir = angle > 0 ? 'right' : 'left';
-            const severity = Math.abs(angle) > 70 ? 'Turn' : 'Bear';
+            const severity = Math.abs(angle) > CONFIG.NAVIGATION.SHARP_TURN_THRESHOLD ? 'Turn' : 'Bear';
             return { text: `${severity} ${dir}`, distance: Math.round(distToTurn) };
         }
     }
 
-    const distToDest = haversineDistance(userLat, userLon, destinationLat, destinationLon);
+    const distToDest = calculateDistance(userLat, userLon, destinationLat, destinationLon);
     return { text: `Head to ${destinationName}`, distance: Math.round(distToDest) };
 }
 
@@ -406,7 +399,7 @@ function buildCumulativeDistances() {
     cumulativeDistances = [0];
     for (let i = 0; i < routePath.length - 1; i++) {
         cumulativeDistances.push(
-            cumulativeDistances[i] + haversineDistance(
+            cumulativeDistances[i] + calculateDistance(
                 routePath[i].lat, routePath[i].lon,
                 routePath[i+1].lat, routePath[i+1].lon
             )
@@ -423,7 +416,7 @@ function getRemainingDistance(closestIdx, userLat, userLon) {
 
         const A = routePath[closestIdx];
         const B = routePath[closestIdx + 1];
-        const segLen = haversineDistance(A.lat, A.lon, B.lat, B.lon);
+        const segLen = calculateDistance(A.lat, A.lon, B.lat, B.lon);
         let segProgress = 0;
 
         if (segLen > 0) {
@@ -440,13 +433,13 @@ function getRemainingDistance(closestIdx, userLat, userLon) {
         return Math.round(totalRoute - distToClosest - segProgress);
     }
 
-    return Math.round(haversineDistance(userLat, userLon, destinationLat, destinationLon));
+    return Math.round(calculateDistance(userLat, userLon, destinationLat, destinationLon));
 }
 
 function checkOffRoute(minDist) {
     if (!routePath || routePath.length === 0) return;
 
-    if (minDist > 35) {
+    if (minDist > CONFIG.NAVIGATION.OFF_ROUTE_THRESHOLD) {
         if (!offRouteTimer) {
             updateInstructionBanner('Recalculating...', '', '#e67e22');
             offRouteTimer = setTimeout(() => {
@@ -458,7 +451,7 @@ function checkOffRoute(minDist) {
                     lastClosestIdx = 0;
                 });
                 offRouteTimer = null;
-            }, 4000);
+            }, CONFIG.NAVIGATION.OFF_ROUTE_DELAY);
         }
     } else {
         if (offRouteTimer) {
@@ -495,7 +488,7 @@ function updateNavigationUI(userLat, userLon, closest) {
 
     const instruction = getNextInstruction(userLat, userLon, closest.idx);
     const remaining = getRemainingDistance(closest.idx, userLat, userLon);
-    const mins = Math.ceil(remaining / 80);
+    const mins = Math.ceil(remaining / CONFIG.NAVIGATION.WALKING_SPEED);
 
     updateInstructionBanner(
         instruction.text,

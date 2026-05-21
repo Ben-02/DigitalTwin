@@ -33,7 +33,7 @@ export function getUserLocation() {
                     console.log(`✅ User location: ${userLocation.latitude.toFixed(6)}, ${userLocation.longitude.toFixed(6)}`);
                     console.log(`Accuracy: ${userLocation.accuracy.toFixed(1)} meters`);
                     
-                    if (userLocation.accuracy > 50) {
+                    if (userLocation.accuracy > CONFIG.GPS.ACCURACY_WARNING) {
                         console.warn(`⚠️ Low accuracy (${userLocation.accuracy.toFixed(0)}m) - consider manual adjustment`);
                     }
                     

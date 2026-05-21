@@ -2,6 +2,8 @@ import { viewer, scheduleRender } from '../map/viewer.js';
 import { userLocation } from '../map/userLocation.js';
 import { setLastDestination, clearLastDestination } from '../map/userLocation.js';
 import { findNearestNode, findPath, getNodeById } from './pathGraph.js';
+import { calculateDistance } from '../utils/helper.js';
+import { CONFIG } from '../config.js';
 
 let currentRoutePath = [];
 let currentDestination = { lat: null, lon: null, name: null };
@@ -76,15 +78,6 @@ export function hasActiveRoute() {
 }
 
 let currentRoute = null;
-
-function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371e3;
-    const toRad = Math.PI / 180;
-    const dLat = (lat2 - lat1) * toRad;
-    const dLon = (lon2 - lon1) * toRad;
-    const cosLat = Math.cos((lat1 + lat2) / 2 * toRad);
-    return R * Math.sqrt(dLat * dLat + dLon * dLon * cosLat * cosLat);
-}
 
 function addRoutePins(startLat, startLon, endLat, endLon) {
     removeRoutePins();
@@ -227,7 +220,7 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
     }
     
     console.log(`📏 Total distance: ${totalDistance.toFixed(0)} meters (following pathways)`);
-    console.log(`🚶 Estimated walking time: ${Math.ceil(totalDistance / 80)} minutes`);
+    console.log(`🚶 Estimated walking time: ${Math.ceil(totalDistance / CONFIG.NAVIGATION.WALKING_SPEED)} minutes`);
     
     if (!navigationActive) {
         zoomToShowRoute(startPoint.latitude, startPoint.longitude, targetLat, targetLon);
@@ -242,7 +235,7 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
     
     return {
         distance: totalDistance,
-        walkingTime: Math.ceil(totalDistance / 80),
+        walkingTime: Math.ceil(totalDistance / CONFIG.NAVIGATION.WALKING_SPEED),
         pathNodes: path.length
     };
 }
@@ -290,7 +283,7 @@ function drawDirectRoute(targetLat, targetLon, targetName) {
 function showRouteInfo(distance, targetName, usingCustomStart = false) {
     const infoPanel = document.getElementById('info-panel');
     const infoContent = document.getElementById('info-content');
-    const walkingTime = Math.ceil(distance / 80);
+    const walkingTime = Math.ceil(distance / CONFIG.NAVIGATION.WALKING_SPEED);
 
     import('../map/userLocation.js').then(({ userLocation, isInsideCampus, getIsManualLocation }) => {
         const onCampus = userLocation && isInsideCampus(

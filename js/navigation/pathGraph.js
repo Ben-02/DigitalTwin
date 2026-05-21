@@ -1,4 +1,5 @@
 import { pathwayData } from '../data/pathways.js';
+import { calculateDistance } from '../utils/helper.js';
 
 let pathwayGraph = null;
 let nodeById = new Map();
@@ -83,15 +84,6 @@ export function buildPathwayGraph() {
     buildSpatialGrid();
     console.log(`✅ Pathway graph built: ${pathwayGraph.nodeCount} nodes, ${pathwayGraph.edgeCount} edges`);
     return pathwayGraph;
-}
-
-function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371e3;
-    const toRad = Math.PI / 180;
-    const dLat = (lat2 - lat1) * toRad;
-    const dLon = (lon2 - lon1) * toRad;
-    const cosLat = Math.cos((lat1 + lat2) / 2 * toRad);
-    return R * Math.sqrt(dLat * dLat + dLon * dLon * cosLat * cosLat);
 }
 
 function buildSpatialGrid() {
