@@ -2,8 +2,6 @@ import { viewer, scheduleRender } from './viewer.js';
 import { CONFIG } from '../config.js';
 
 export function drawCampusBoundary() {
-    console.log("📐 Drawing campus boundary...");
-    
     viewer.entities.add({
         name: 'Curtin Bentley Campus',
         polyline: {
@@ -15,5 +13,4 @@ export function drawCampusBoundary() {
     });
     
     scheduleRender();
-    console.log("✅ Campus boundary drawn");
 }

@@ -19,8 +19,6 @@ let lastDestination = null;
 export function getUserLocation() {
     return new Promise((resolve, reject) => {
         if (navigator.geolocation) {
-            console.log("📍 Requesting user location...");
-            
             navigator.geolocation.getCurrentPosition(
                 (position) => {
                     userLocation = {
@@ -30,23 +28,15 @@ export function getUserLocation() {
                     };
                     
                     gpsLocation = { ...userLocation };
-                    
-                    console.log(`✅ User location: ${userLocation.latitude.toFixed(6)}, ${userLocation.longitude.toFixed(6)}`);
-                    console.log(`Accuracy: ${userLocation.accuracy.toFixed(1)} meters`);
-                    
-                    if (userLocation.accuracy > CONFIG.GPS.ACCURACY_WARNING) {
-                        console.warn(`⚠️ Low accuracy (${userLocation.accuracy.toFixed(0)}m) - consider manual adjustment`);
-                    }
-                    
+
                     showUserLocationMarker();
                     resolve(userLocation);
                 },
                 (error) => {
-                    console.error("❌ Error getting location:", error.message);
+                    console.error("Error getting location:", error.message);
 
                     if (error.code === 1) {
                         locationPermissionDenied = true;
-                        console.warn("⚠️ Location permission denied by user");
                         updateLocationLabel('denied');
                         resolve(null);
                         return;
@@ -58,7 +48,6 @@ export function getUserLocation() {
                         accuracy: null
                     };
                     gpsLocation = { ...userLocation };
-                    console.log("⚠️ Using default campus entrance location");
                     showUserLocationMarker();
                     resolve(userLocation);
                 },
@@ -69,7 +58,7 @@ export function getUserLocation() {
                 }
             );
         } else {
-            console.error("❌ Geolocation not supported by this browser");
+            console.error("Geolocation not supported by this browser");
             
             userLocation = {
                 latitude: -32.0063,
@@ -133,7 +122,6 @@ export async function enableManualLocationSetting() {
     }
 
     if (locationPermissionDenied) {
-        console.log("🔄 Re-requesting location permission...");
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 locationPermissionDenied = false;
@@ -147,11 +135,9 @@ export async function enableManualLocationSetting() {
                 showUserLocationMarker();
                 updateLocationLabel('gps');
                 updateLocationButtons();
-                console.log("✅ Location permission granted!");
             },
             (error) => {
                 if (error.code === 1) {
-                    console.warn("⚠️ Still denied, entering manual mode");
                     alert('Location is blocked in your browser settings.\nYou can set your location manually by clicking on the map.');
                     enterManualClickMode();
                 }
@@ -165,8 +151,6 @@ export async function enableManualLocationSetting() {
 }
 
 function enterManualClickMode() {
-    console.log("🖱️ Manual location mode enabled - click on the map to set your position");
-
     flyToCampus();
 
     if (manualLocationHandler) {
@@ -202,8 +186,6 @@ function enterManualClickMode() {
             
             isManualLocation = true;
             
-            console.log(`📍 Manual location set: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
-            
             showUserLocationMarker();
             hideMapPickPanel();
             
@@ -213,13 +195,11 @@ function enterManualClickMode() {
             }
             
             window.buildingClickEnabled = true;
-            console.log("✅ Building clicks re-enabled");
-            
+
             updateLocationLabel('manual');
             updateLocationButtons();
             
             if (lastDestination) {
-                console.log("🔄 Redrawing route from new location...");
                 import('../navigation/pathfinder.js').then(({ drawRouteTo }) => {
                     drawRouteTo(
                         lastDestination.latitude,
@@ -231,15 +211,11 @@ function enterManualClickMode() {
             
             alert('✅ Your location has been updated!' + 
                   (lastDestination ? ' Route has been recalculated.' : ' Search for a building to see the route.'));
-        } else {
-            console.warn("Could not pick position - try clicking on the terrain");
         }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 }
 
 export function cancelManualLocationMode() {
-    console.log("❌ Manual location mode cancelled");
-
     if (manualLocationHandler) {
         manualLocationHandler.destroy();
         manualLocationHandler = null;
@@ -256,8 +232,6 @@ export function revertToGPSLocation() {
         return;
     }
 
-    console.log("🔄 Reverting to GPS location");
-
     userLocation = { ...gpsLocation };
     isManualLocation = false;
 
@@ -269,8 +243,6 @@ export function revertToGPSLocation() {
     updateLocationButtons();
     
     if (lastDestination) {
-        console.log("🔄 Redrawing route from GPS location...");
-        
         import('../navigation/pathfinder.js').then(({ drawRouteTo }) => {
             drawRouteTo(
                 lastDestination.latitude,
@@ -279,7 +251,7 @@ export function revertToGPSLocation() {
             );
         });
     }
-    
+
     alert('✅ Reverted to GPS location' + 
           (lastDestination ? '. Route has been recalculated.' : ''));
 }
@@ -290,12 +262,10 @@ export function setLastDestination(lat, lon, name) {
         longitude: lon,
         name: name
     };
-    console.log(`💾 Destination saved: ${name}`);
 }
 
 export function clearLastDestination() {
     lastDestination = null;
-    console.log("🗑️ Destination cleared");
 }
 
 function updateLocationLabel(type) {
@@ -394,8 +364,6 @@ export function updateUserLocation() {
         updateLocationButtons();
         
         if (lastDestination) {
-            console.log("🔄 Redrawing route from refreshed GPS location...");
-            
             import('../navigation/pathfinder.js').then(({ drawRouteTo }) => {
                 drawRouteTo(
                     lastDestination.latitude,

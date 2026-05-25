@@ -14,7 +14,6 @@ export function searchBuilding() {
         return;
     }
 
-    console.log(`🔍 Searching for: "${searchTerm}"`);
     removeHighlight();
 
     const results = searchBuildings(searchTerm);
@@ -73,7 +72,6 @@ function tryHighlightBuildingAtPosition(lat, lon) {
             import('../map/buildings.js').then(({ highlightBuilding }) => {
                 highlightBuilding(picked);
             });
-            console.log("✅ Building highlighted after search");
         }
     }
 }

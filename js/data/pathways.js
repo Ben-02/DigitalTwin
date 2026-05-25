@@ -3,15 +3,10 @@ import { campusDataSource } from './metadata.js';
 export let pathwayData = [];
 
 export function analyzePathwayData() {
-    if (!campusDataSource) {
-        console.log("Campus data not loaded yet");
-        return [];
-    }
-    
+    if (!campusDataSource) return [];
+
     const entities = campusDataSource.entities.values;
     pathwayData.length = 0;
-    
-    console.log("🔍 Analyzing GeoJSON for pathway data...");
     
     entities.forEach(entity => {
         if (!entity.properties) return;
@@ -32,15 +27,6 @@ export function analyzePathwayData() {
             pathwayData.push(pathway);
         }
     });
-    
-    console.log(`📊 Total pathways found: ${pathwayData.length}`);
-    
-    const byType = {};
-    pathwayData.forEach(p => {
-        byType[p.type] = (byType[p.type] || 0) + 1;
-    });
-    
-    console.log("Pathway types:", byType);
     
     return pathwayData;
 }

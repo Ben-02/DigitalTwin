@@ -11,8 +11,6 @@ import { closeInfoPanel } from './ui/infoPanel.js';
 
 async function initializeApp() {
     try {
-        console.log("🚀 Initializing app...");
-
         initializeViewer();
 
         const gpsPromise = getUserLocation();
@@ -20,11 +18,10 @@ async function initializeApp() {
         await Promise.all([loadOSMBuildings(), loadCampusMetadata()]);
 
         const pathways = analyzePathwayData();
-        console.log(`Pathways analyzed: ${pathways.length}`);
 
         const graph = buildPathwayGraph();
         if (!graph) {
-            console.error("⚠️ Failed to build pathway graph");
+            console.error("Failed to build pathway graph");
         }
 
         await gpsPromise;
@@ -36,10 +33,9 @@ async function initializeApp() {
         scheduleRender();
         import('./navigation/tripMode.js').catch(() => {});
         hideLoadingScreen();
-        console.log("🎉 Campus loaded successfully!");
 
     } catch (error) {
-        console.error("❌ Error loading campus:", error);
+        console.error("Error loading campus:", error);
         hideLoadingScreen();
     }
 }
@@ -52,8 +48,7 @@ function hideLoadingScreen() {
 }
 
 function setupUIEventListeners() {
-    console.log("🔌 Setting up UI event listeners...");
-    
+
     const searchButton = document.getElementById('searchButton');
     if (searchButton) {
         searchButton.addEventListener('click', () => {
@@ -99,7 +94,6 @@ function setupUIEventListeners() {
             removeHighlight();
         });
     }
-    console.log("✅ UI event listeners setup complete");
 }
 
     if (document.readyState === 'loading') 

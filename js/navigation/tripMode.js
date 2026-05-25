@@ -61,8 +61,6 @@ export function startTrip(path, destName, destLat, destLon) {
     navDistEl = document.getElementById('nav-remaining-distance');
     navTimeEl = document.getElementById('nav-remaining-time');
 
-    console.log(`🚀 Starting navigation to ${destName}`);
-
     const overlay = document.getElementById('ui-overlay');
     if (overlay) overlay.style.display = 'none';
     const helpBtn = document.getElementById('help-btn');
@@ -151,7 +149,6 @@ export function stopTrip() {
     navDistEl = null;
     navTimeEl = null;
     scheduleRender();
-    console.log('🛑 Navigation stopped');
 }
 
 function addInteractionListeners() {

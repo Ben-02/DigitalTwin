@@ -7,10 +7,8 @@ let spatialGrid = null;
 let gridConfig = null;
 
 export function buildPathwayGraph() {
-    console.log("🔨 Building pathway graph...");
-
     if (!pathwayData || pathwayData.length === 0) {
-        console.error("❌ No pathway data available!");
+        console.error("No pathway data available");
         return null;
     }
     
@@ -82,7 +80,6 @@ export function buildPathwayGraph() {
     };
     
     buildSpatialGrid();
-    console.log(`✅ Pathway graph built: ${pathwayGraph.nodeCount} nodes, ${pathwayGraph.edgeCount} edges`);
     return pathwayGraph;
 }
 
@@ -167,8 +164,6 @@ function findNearestNodeBruteForce(lat, lon) {
 export function findPath(startNode, endNode) {
     if (!pathwayGraph) return null;
 
-    console.log(`🔍 Finding path: node ${startNode.id} → node ${endNode.id}`);
-    
     const gScore = new Map();
     const cameFrom = new Map();
     const closedSet = new Set();
@@ -184,7 +179,6 @@ export function findPath(startNode, endNode) {
         closedSet.add(current);
 
         if (current === endNode.id) {
-            console.log("✅ Path found!");
             return reconstructPath(cameFrom, current);
         }
         
@@ -214,7 +208,6 @@ export function findPath(startNode, endNode) {
         });
     }
     
-    console.log("❌ No path found");
     return null;
 }
 

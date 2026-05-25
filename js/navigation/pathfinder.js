@@ -31,7 +31,6 @@ export function setCustomStartPoint(lat, lon, name) {
         scheduleRender();
     }
     customStartPoint = { latitude: lat, longitude: lon, name };
-    console.log(`📌 Custom start set: ${name}`);
     showStartBanner(name);
 }
 
@@ -66,7 +65,6 @@ export function clearCustomStartPoint(skipConfirm = false) {
         document.getElementById('info-panel').style.display = 'none';
         expandSearchPanel();
     }
-    console.log("🗑️ Custom start cleared");
 }
 
 export function getCustomStartPoint() {
@@ -123,13 +121,10 @@ function zoomToShowRoute(startLat, startLon, targetLat, targetLon) {
             0
         )
     });
-    
-    console.log("📷 Camera adjusted to show full route");
+
 }
 
 export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
-    console.log(`🗺️ Drawing route to ${targetName}...`);
-
     const startPoint = customStartPoint || userLocation;
     if (!startPoint) {
         alert("Cannot find route - location not available");
@@ -153,9 +148,6 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
         console.error("Could not find pathway nodes");
         return;
     }
-    
-    console.log(`Start node: ${startResult.distance.toFixed(1)}m away`);
-    console.log(`End node: ${endResult.distance.toFixed(1)}m away`);
     
     const path = findPath(startResult.node, endResult.node);
     
@@ -218,9 +210,6 @@ export function drawRouteTo(targetLat, targetLon, targetName = "Destination") {
             );
         }
     }
-    
-    console.log(`📏 Total distance: ${totalDistance.toFixed(0)} meters (following pathways)`);
-    console.log(`🚶 Estimated walking time: ${Math.ceil(totalDistance / CONFIG.NAVIGATION.WALKING_SPEED)} minutes`);
     
     if (!navigationActive) {
         zoomToShowRoute(startPoint.latitude, startPoint.longitude, targetLat, targetLon);
@@ -353,7 +342,6 @@ export function clearRoute(skipConfirm = false) {
     }
 
     clearAllDirectionsState();
-    console.log("🗑️ Route cleared");
 }
 
 export function clearAllDirectionsState() {
@@ -439,8 +427,6 @@ window.clearEndPoint = function() {
     import('../ui/infoPanel.js').then(({ showDestinationReselect }) => {
         showDestinationReselect(savedStartName, savedStart);
     });
-
-    console.log("🗑️ End point cleared");
 };
 
 function collapseSearchPanel() {

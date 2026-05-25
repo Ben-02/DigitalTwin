@@ -5,8 +5,6 @@ export let campusDataSource;
 export let buildingMetadataMap = new Map();
 
 export async function loadCampusMetadata() {
-    console.log("📍 Loading metadata from GeoJSON...");
-    
     const resource = await Cesium.IonResource.fromAssetId(CONFIG.CESIUM_ION_ASSETS.CAMPUS_DATA);
     campusDataSource = await Cesium.GeoJsonDataSource.load(resource, {
         stroke: Cesium.Color.TRANSPARENT,
@@ -15,8 +13,6 @@ export async function loadCampusMetadata() {
     });
     
     buildMetadataMap();
-    console.log("✅ Metadata loaded!");
-    console.log(`📊 ${buildingMetadataMap.size} buildings with metadata indexed`);
 }
 
 function buildMetadataMap() {
@@ -36,9 +32,6 @@ function buildMetadataMap() {
                 const buildingNum = entity.properties['addr:housenumber']?._value;
                 const name = entity.properties.name?._value;
                 
-                if (buildingNum || name) {
-                    console.log(`Indexed: Element ${elementId} → Building ${buildingNum || 'unnamed'} (${name || ''})`);
-                }
             }
         }
     });
