@@ -45,8 +45,28 @@ export function getManualBuildingData(elementId) {
     return MANUAL_BUILDING_LOOKUP[elementId] || null;
 }
 
+function getEntityPosition(entity) {
+    if (entity.position) {
+        const pos = entity.position.getValue(Cesium.JulianDate.now());
+        const carto = Cesium.Cartographic.fromCartesian(pos);
+        return { lat: Cesium.Math.toDegrees(carto.latitude), lon: Cesium.Math.toDegrees(carto.longitude) };
+    }
+    if (entity.polygon && entity.polygon.hierarchy) {
+        const positions = entity.polygon.hierarchy.getValue(Cesium.JulianDate.now()).positions;
+        let sumX = 0, sumY = 0, sumZ = 0;
+        positions.forEach(p => { sumX += p.x; sumY += p.y; sumZ += p.z; });
+        const carto = Cesium.Cartographic.fromCartesian(
+            new Cesium.Cartesian3(sumX / positions.length, sumY / positions.length, sumZ / positions.length)
+        );
+        return { lat: Cesium.Math.toDegrees(carto.latitude), lon: Cesium.Math.toDegrees(carto.longitude) };
+    }
+    return null;
+}
+
 export function searchBuildings(term) {
     const matches = [];
+    const addedElements = new Set();
+    const c = CONFIG.CAMPUS_BOUNDARY.coords;
 
     for (let [elementId, entity] of buildingMetadataMap) {
         const props = entity.properties;
@@ -58,46 +78,43 @@ export function searchBuildings(term) {
             name.toLowerCase().includes(term) ||
             houseName.toLowerCase().includes(term)) {
 
-            let lat, lon;
+            const pos = getEntityPosition(entity);
+            if (!pos || pos.lon < c[0] || pos.lon > c[2] || pos.lat < c[7] || pos.lat > c[1]) continue;
 
-            if (entity.position) {
-                const position = entity.position.getValue(Cesium.JulianDate.now());
-                const cartographic = Cesium.Cartographic.fromCartesian(position);
-                lat = Cesium.Math.toDegrees(cartographic.latitude);
-                lon = Cesium.Math.toDegrees(cartographic.longitude);
-            } else if (entity.polygon && entity.polygon.hierarchy) {
-                const hierarchy = entity.polygon.hierarchy.getValue(Cesium.JulianDate.now());
-                const positions = hierarchy.positions;
+            const buildingNum = houseNumber || 'Unknown';
+            const buildingName = houseName || name || '';
+            const fullName = buildingNum !== 'Unknown' ? `Building ${buildingNum}` : buildingName;
+            const exact = houseNumber.toLowerCase() === term;
 
-                let sumX = 0, sumY = 0, sumZ = 0;
-                positions.forEach(pos => {
-                    sumX += pos.x;
-                    sumY += pos.y;
-                    sumZ += pos.z;
-                });
+            matches.push({ entity, lat: pos.lat, lon: pos.lon, buildingNum, buildingName, fullName, exact });
+            addedElements.add(elementId);
+        }
+    }
 
-                const centerPos = new Cesium.Cartesian3(
-                    sumX / positions.length,
-                    sumY / positions.length,
-                    sumZ / positions.length
-                );
+    for (const [idStr, data] of Object.entries(MANUAL_BUILDING_LOOKUP)) {
+        const elementId = parseInt(idStr);
+        if (addedElements.has(elementId)) continue;
 
-                const cartographic = Cesium.Cartographic.fromCartesian(centerPos);
-                lat = Cesium.Math.toDegrees(cartographic.latitude);
-                lon = Cesium.Math.toDegrees(cartographic.longitude);
-            }
+        const number = data.number || '';
+        const name = data.name || '';
+        if (!number && !name) continue;
 
-            if (lat && lon) {
-                const c = CONFIG.CAMPUS_BOUNDARY.coords;
-                if (lon < c[0] || lon > c[2] || lat < c[7] || lat > c[1]) continue;
+        if (number.toLowerCase().includes(term) ||
+            name.toLowerCase().includes(term)) {
 
-                const buildingNum = houseNumber || 'Unknown';
-                const buildingName = houseName || name || '';
-                const fullName = buildingNum !== 'Unknown' ? `Building ${buildingNum}` : buildingName;
-                const exact = houseNumber.toLowerCase() === term;
+            const entity = buildingMetadataMap.get(elementId);
+            if (!entity) continue;
 
-                matches.push({ entity, lat, lon, buildingNum, buildingName, fullName, exact });
-            }
+            const pos = getEntityPosition(entity);
+            if (!pos || pos.lon < c[0] || pos.lon > c[2] || pos.lat < c[7] || pos.lat > c[1]) continue;
+
+            const buildingNum = number || 'Unknown';
+            const buildingName = name || '';
+            const fullName = buildingNum !== 'Unknown' ? `Building ${buildingNum}` : buildingName;
+            const exact = number.toLowerCase() === term;
+
+            matches.push({ entity, lat: pos.lat, lon: pos.lon, buildingNum, buildingName, fullName, exact });
+            addedElements.add(elementId);
         }
     }
 

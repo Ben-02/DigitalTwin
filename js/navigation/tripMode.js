@@ -28,6 +28,7 @@ let userInteracting = false;
 let interactionTimer = null;
 
 let deviceHeading = null;
+let smoothedHeading = null;
 let compassListener = null;
 
 let navBanner = null;
@@ -68,6 +69,7 @@ export function startTrip(path, destName, destLat, destLon) {
     const helpBtn = document.getElementById('help-btn');
     if (helpBtn) helpBtn.style.display = 'none';
 
+    window.buildingClickEnabled = false;
     startCompass();
     removeStartPin();
     showNavigationUI();
@@ -92,10 +94,10 @@ export function startTrip(path, destName, destLat, destLon) {
             {
                 offset: new Cesium.HeadingPitchRange(
                     Cesium.Math.toRadians(deviceHeading !== null ? deviceHeading : 0),
-                    Cesium.Math.toRadians(-50),
-                    150
+                    Cesium.Math.toRadians(-65),
+                    80
                 ),
-                duration: 1.5,
+                duration: 2.5,
                 complete: startGPSWatch,
                 cancel: startGPSWatch
             }
@@ -170,16 +172,30 @@ export function stopTrip() {
     navSubText = null;
     navDistEl = null;
     navTimeEl = null;
+    window.buildingClickEnabled = true;
     scheduleRender();
 }
 
 function startCompass() {
     const handler = (event) => {
+        let raw;
         if (event.webkitCompassHeading !== undefined) {
-            deviceHeading = event.webkitCompassHeading;
+            raw = event.webkitCompassHeading;
         } else if (event.alpha !== null) {
-            deviceHeading = (360 - event.alpha) % 360;
+            raw = (360 - event.alpha) % 360;
+        } else {
+            return;
         }
+
+        if (smoothedHeading === null) {
+            smoothedHeading = raw;
+        } else {
+            let diff = raw - smoothedHeading;
+            if (diff > 180) diff -= 360;
+            if (diff < -180) diff += 360;
+            smoothedHeading = ((smoothedHeading + diff * 0.15) % 360 + 360) % 360;
+        }
+        deviceHeading = smoothedHeading;
     };
 
     if (typeof DeviceOrientationEvent !== 'undefined' &&
@@ -204,6 +220,7 @@ function stopCompass() {
         compassListener = null;
     }
     deviceHeading = null;
+    smoothedHeading = null;
 }
 
 function addInteractionListeners() {
@@ -296,8 +313,8 @@ function recenterCamera() {
         {
             offset: new Cesium.HeadingPitchRange(
                 Cesium.Math.toRadians(currentHeading),
-                Cesium.Math.toRadians(-50),
-                150
+                Cesium.Math.toRadians(-65),
+                80
             ),
             duration: 1.0
         }
@@ -389,8 +406,8 @@ function zoomToUser(lat, lon, heading) {
     const target = Cesium.Cartesian3.fromDegrees(lon, lat, 0);
     viewer.camera.lookAt(target, new Cesium.HeadingPitchRange(
         Cesium.Math.toRadians(heading),
-        Cesium.Math.toRadians(-50),
-        150
+        Cesium.Math.toRadians(-65),
+        80
     ));
     viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
     scheduleRender();
