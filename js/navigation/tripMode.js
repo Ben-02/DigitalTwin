@@ -27,6 +27,8 @@ let isFollowingUser = true;
 let userInteracting = false;
 let interactionTimer = null;
 
+let deviceHeading = null;
+let compassListener = null;
 
 let navBanner = null;
 let navMainText = null;
@@ -66,6 +68,7 @@ export function startTrip(path, destName, destLat, destLon) {
     const helpBtn = document.getElementById('help-btn');
     if (helpBtn) helpBtn.style.display = 'none';
 
+    startCompass();
     removeStartPin();
     showNavigationUI();
     updateInstructionBanner('Starting navigation...', '', '#2c3e50');
@@ -87,7 +90,11 @@ export function startTrip(path, destName, destLat, destLon) {
         viewer.camera.flyToBoundingSphere(
             new Cesium.BoundingSphere(target, 0),
             {
-                offset: new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(-50), 150),
+                offset: new Cesium.HeadingPitchRange(
+                    Cesium.Math.toRadians(deviceHeading !== null ? deviceHeading : 0),
+                    Cesium.Math.toRadians(-50),
+                    150
+                ),
                 duration: 1.5,
                 complete: startGPSWatch,
                 cancel: startGPSWatch
@@ -119,6 +126,7 @@ export function stopTrip() {
     }
 
     removeInteractionListeners();
+    stopCompass();
 
     const recenterBtn = document.getElementById('nav-recenter-btn');
     if (recenterBtn) recenterBtn.remove();
@@ -163,6 +171,39 @@ export function stopTrip() {
     navDistEl = null;
     navTimeEl = null;
     scheduleRender();
+}
+
+function startCompass() {
+    const handler = (event) => {
+        if (event.webkitCompassHeading !== undefined) {
+            deviceHeading = event.webkitCompassHeading;
+        } else if (event.alpha !== null) {
+            deviceHeading = (360 - event.alpha) % 360;
+        }
+    };
+
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission()
+            .then(response => {
+                if (response === 'granted') {
+                    window.addEventListener('deviceorientation', handler);
+                    compassListener = handler;
+                }
+            })
+            .catch(() => {});
+    } else {
+        window.addEventListener('deviceorientation', handler);
+        compassListener = handler;
+    }
+}
+
+function stopCompass() {
+    if (compassListener) {
+        window.removeEventListener('deviceorientation', compassListener);
+        compassListener = null;
+    }
+    deviceHeading = null;
 }
 
 function addInteractionListeners() {
@@ -305,7 +346,9 @@ function onPositionUpdate(position) {
         ? calculateDistance(previousLat, previousLon, lat, lon)
         : 0;
 
-    if (moved > CONFIG.NAVIGATION.HEADING_MOVE_THRESHOLD) {
+    if (deviceHeading !== null) {
+        currentHeading = deviceHeading;
+    } else if (moved > CONFIG.NAVIGATION.HEADING_MOVE_THRESHOLD) {
         currentHeading = calculateBearing(previousLat, previousLon, lat, lon);
     }
 

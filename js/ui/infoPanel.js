@@ -24,22 +24,11 @@ function buildBuildingInfoHTML(entity) {
     const rawName = props['addr:housename']?._value || props.name?._value || '';
     const buildingNum = rawNum || extractNumFromName(rawName) || 'N/A';
     const displayName = rawName || 'Unknown Building';
-    const amenity = props.amenity?._value || '';
-    const healthcare = props.healthcare?._value || '';
-    const street = props['addr:street']?._value || '';
-    const suburb = props['addr:suburb']?._value || '';
 
-    let html = `
+    return `
         <h3>Building ${escapeHtml(buildingNum)}</h3>
         <p><strong>Name:</strong> ${escapeHtml(displayName)}</p>
     `;
-
-    if (street) html += `<p><strong>Street:</strong> ${escapeHtml(street)}</p>`;
-    if (suburb) html += `<p><strong>Suburb:</strong> ${escapeHtml(suburb)}</p>`;
-    if (amenity) html += `<p><strong>Amenity:</strong> ${escapeHtml(amenity)}</p>`;
-    if (healthcare) html += `<p><strong>Type:</strong> Healthcare Facility</p>`;
-
-    return html;
 }
 
 export function showBuildingInfo(entity) {
