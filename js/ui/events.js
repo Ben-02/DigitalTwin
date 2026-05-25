@@ -27,12 +27,15 @@ export function enableBuildingClick() {
             const metadataEntity = getBuildingMetadata(elementId);
 
             if (metadataEntity) {
-                const buildingNum = metadataEntity.properties['addr:housenumber']?._value || 'Unknown';
+                const manualData = getManualBuildingData(elementId);
+                const buildingNum = metadataEntity.properties['addr:housenumber']?._value ||
+                                    (manualData && manualData.number) || 'Unknown';
                 const buildingName = metadataEntity.properties['addr:housename']?._value ||
-                                    metadataEntity.properties.name?._value || '';
+                                    metadataEntity.properties.name?._value ||
+                                    (manualData && manualData.name) || '';
                 const fullName = buildingNum !== 'Unknown' ? `Building ${buildingNum}` : buildingName;
 
-                showBuildingInfoWithDirections(metadataEntity, lat, lon, fullName);
+                showBuildingInfoWithDirections(metadataEntity, lat, lon, fullName, buildingNum, buildingName);
             } else {
                 const manualData = getManualBuildingData(elementId);
                 if (manualData && (manualData.number || manualData.name)) {

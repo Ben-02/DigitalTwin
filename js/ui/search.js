@@ -32,7 +32,7 @@ export function searchBuilding() {
 
 function selectResult(match) {
     flyToBuilding(match.lat, match.lon, 15);
-    showBuildingInfoWithDirections(match.entity, match.lat, match.lon, match.fullName);
+    showBuildingInfoWithDirections(match.entity, match.lat, match.lon, match.fullName, match.buildingNum, match.buildingName);
     setTimeout(() => {
         tryHighlightBuildingAtPosition(match.lat, match.lon);
     }, 2500);

@@ -19,12 +19,12 @@ function extractNumFromName(name) {
     return match ? match[1] : '';
 }
 
-function buildBuildingInfoHTML(entity) {
+function buildBuildingInfoHTML(entity, fallbackNum, fallbackName) {
     const props = entity.properties;
     const rawNum = props['addr:housenumber']?._value || '';
     const rawName = props['addr:housename']?._value || props.name?._value || '';
-    const buildingNum = rawNum || extractNumFromName(rawName) || 'N/A';
-    const displayName = rawName || 'Unknown Building';
+    const buildingNum = rawNum || fallbackNum || extractNumFromName(rawName) || 'N/A';
+    const displayName = rawName || fallbackName || 'Unknown Building';
 
     return `
         <h3>Building ${escapeHtml(buildingNum)}</h3>
@@ -38,12 +38,12 @@ export function showBuildingInfo(entity) {
     document.getElementById('info-panel').style.display = 'block';
 }
 
-export function showBuildingInfoWithDirections(entity, lat, lon, buildingName) {
+export function showBuildingInfoWithDirections(entity, lat, lon, buildingName, fallbackNum, fallbackName) {
     pendingDirections = { lat, lon, name: buildingName };
-    pendingBuildingInfo = { type: 'metadata', args: [entity, lat, lon, buildingName] };
+    pendingBuildingInfo = { type: 'metadata', args: [entity, lat, lon, buildingName, fallbackNum, fallbackName] };
 
     const infoContent = document.getElementById('info-content');
-    const infoHtml = entity ? buildBuildingInfoHTML(entity) : `
+    const infoHtml = entity ? buildBuildingInfoHTML(entity, fallbackNum, fallbackName) : `
         <h3>${escapeHtml(buildingName)}</h3>
     `;
     infoContent.innerHTML = infoHtml + `
