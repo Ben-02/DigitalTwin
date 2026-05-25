@@ -71,18 +71,21 @@ export function searchBuildings(term) {
         const houseNumber = props['addr:housenumber']?._value || '';
         const name = props.name?._value || '';
         const houseName = props['addr:housename']?._value || '';
+        const manual = MANUAL_BUILDING_LOOKUP[elementId];
 
         if (houseNumber.toLowerCase().includes(term) ||
             name.toLowerCase().includes(term) ||
-            houseName.toLowerCase().includes(term)) {
+            houseName.toLowerCase().includes(term) ||
+            (manual && (manual.number || '').toLowerCase().includes(term)) ||
+            (manual && (manual.name || '').toLowerCase().includes(term))) {
 
             const pos = getEntityPosition(entity);
             if (!pos || pos.lon < c[0] || pos.lon > c[2] || pos.lat < c[7] || pos.lat > c[1]) continue;
 
-            const buildingNum = houseNumber || 'Unknown';
-            const buildingName = houseName || name || '';
+            const buildingNum = houseNumber || (manual && manual.number) || 'Unknown';
+            const buildingName = houseName || name || (manual && manual.name) || '';
             const fullName = buildingNum !== 'Unknown' ? `Building ${buildingNum}` : buildingName;
-            const exact = houseNumber.toLowerCase() === term;
+            const exact = buildingNum.toLowerCase() === term;
 
             matches.push({ entity, lat: pos.lat, lon: pos.lon, buildingNum, buildingName, fullName, exact });
             addedElements.add(elementId);
