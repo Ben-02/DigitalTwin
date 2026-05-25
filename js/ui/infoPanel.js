@@ -1,6 +1,7 @@
 import { CONFIG } from '../config.js';
 import { searchBuildings } from '../data/metadata.js';
 import { isInsideCampus } from '../utils/helper.js';
+import { getIsManualLocation } from '../map/userLocation.js';
 
 function escapeHtml(str) {
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -116,7 +117,7 @@ function showDirectionsPanel() {
         <div style="display:flex; flex-direction:column; gap:8px;">
             <button onclick="window.directionsFromGPS()"
                 style="width:100%; padding:12px; background:#27ae60; color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; text-align:left;">
-                📍 My Location (GPS)
+                📍 My Location (${getIsManualLocation() ? 'Manual' : 'GPS'})
             </button>
             <button onclick="window.directionsPickOnMap()"
                 style="width:100%; padding:12px; background:#e67e22; color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; text-align:left;">
@@ -202,7 +203,7 @@ export function showStartReselect(destLat, destLon, destName) {
         <div style="display:flex; flex-direction:column; gap:8px;">
             <button onclick="window.directionsFromGPS()"
                 style="width:100%; padding:12px; background:#27ae60; color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; text-align:left;">
-                📍 My Location (GPS)
+                📍 My Location (${getIsManualLocation() ? 'Manual' : 'GPS'})
             </button>
             <button onclick="window.directionsPickOnMap()"
                 style="width:100%; padding:12px; background:#e67e22; color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; text-align:left;">

@@ -302,6 +302,19 @@ function hideRecenterButton() {
     if (btn) btn.style.display = 'none';
 }
 
+function getRouteHeading() {
+    if (!routePath || routePath.length < 2) return currentHeading;
+
+    const lat = userLocation ? userLocation.latitude : previousLat;
+    const lon = userLocation ? userLocation.longitude : previousLon;
+    if (!lat || !lon) return currentHeading;
+
+    const lookAhead = Math.min(lastClosestIdx + 3, routePath.length - 1);
+    if (lookAhead <= lastClosestIdx) return currentHeading;
+
+    return calculateBearing(lat, lon, routePath[lookAhead].lat, routePath[lookAhead].lon);
+}
+
 function recenterCamera() {
     isFollowingUser = true;
     hideRecenterButton();
@@ -312,7 +325,7 @@ function recenterCamera() {
         new Cesium.BoundingSphere(target, 0),
         {
             offset: new Cesium.HeadingPitchRange(
-                Cesium.Math.toRadians(currentHeading),
+                Cesium.Math.toRadians(getRouteHeading()),
                 Cesium.Math.toRadians(-65),
                 80
             ),
@@ -371,11 +384,11 @@ function onPositionUpdate(position) {
 
     updatePositionDuringNavigation(lat, lon);
 
-    if ((moved > CONFIG.NAVIGATION.CAMERA_FOLLOW_THRESHOLD || previousLat === null) && isFollowingUser) {
-        zoomToUser(lat, lon, currentHeading);
-    }
-
     const closest = findClosestRouteIndex(lat, lon);
+
+    if ((moved > CONFIG.NAVIGATION.CAMERA_FOLLOW_THRESHOLD || previousLat === null) && isFollowingUser) {
+        zoomToUser(lat, lon, getRouteHeading());
+    }
     updateNavigationUI(lat, lon, closest);
     checkOffRoute(closest.dist);
     updateRouteDisplay(lat, lon, closest.idx);
@@ -397,6 +410,13 @@ function onPositionError(error) {
 
     if (gpsErrorCount >= CONFIG.NAVIGATION.GPS_ERROR_LIMIT) {
         updateInstructionBanner('GPS signal lost', 'Check location settings', '#e74c3c');
+        const shouldStop = confirm('GPS signal lost. Would you like to stop the trip?');
+        if (shouldStop) {
+            stopTrip();
+        } else {
+            gpsErrorCount = 0;
+            updateInstructionBanner('Retrying GPS...', '', '#e67e22');
+        }
     } else {
         updateInstructionBanner('Searching for GPS...', '', '#e67e22');
     }
