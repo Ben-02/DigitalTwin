@@ -17,22 +17,20 @@ export async function loadCampusMetadata() {
 
 function buildMetadataMap() {
     const entities = campusDataSource.entities.values;
-    
+
     entities.forEach(entity => {
-        if (!entity.properties || !entity.properties.building) return;
-        
+        if (!entity.properties) return;
+
         const osmId = entity.properties['@id']?._value;
-        
-        if (osmId) {
-            const match = osmId.match(/(?:way|relation)\/(\d+)/);
-            if (match) {
-                const elementId = parseInt(match[1]);
-                buildingMetadataMap.set(elementId, entity);
-                
-                const buildingNum = entity.properties['addr:housenumber']?._value;
-                const name = entity.properties.name?._value;
-                
-            }
+        if (!osmId) return;
+
+        const match = osmId.match(/(?:way|relation)\/(\d+)/);
+        if (!match) return;
+
+        const elementId = parseInt(match[1]);
+
+        if (entity.properties.building || MANUAL_BUILDING_LOOKUP[elementId]) {
+            buildingMetadataMap.set(elementId, entity);
         }
     });
 }
@@ -103,9 +101,10 @@ export function searchBuildings(term) {
             name.toLowerCase().includes(term)) {
 
             const entity = buildingMetadataMap.get(elementId);
-            if (!entity) continue;
-
-            const pos = getEntityPosition(entity);
+            let pos = entity ? getEntityPosition(entity) : null;
+            if (!pos && data.lat && data.lon) {
+                pos = { lat: data.lat, lon: data.lon };
+            }
             if (!pos || pos.lon < c[0] || pos.lon > c[2] || pos.lat < c[7] || pos.lat > c[1]) continue;
 
             const buildingNum = number || 'Unknown';
@@ -113,13 +112,16 @@ export function searchBuildings(term) {
             const fullName = buildingNum !== 'Unknown' ? `Building ${buildingNum}` : buildingName;
             const exact = number.toLowerCase() === term;
 
-            matches.push({ entity, lat: pos.lat, lon: pos.lon, buildingNum, buildingName, fullName, exact });
+            matches.push({ entity: entity || null, lat: pos.lat, lon: pos.lon, buildingNum, buildingName, fullName, exact });
             addedElements.add(elementId);
         }
     }
 
     matches.sort((a, b) => {
         if (a.exact !== b.exact) return a.exact ? -1 : 1;
+        const aNumMatch = a.buildingNum.toLowerCase().includes(term);
+        const bNumMatch = b.buildingNum.toLowerCase().includes(term);
+        if (aNumMatch !== bNumMatch) return aNumMatch ? -1 : 1;
         return a.buildingNum.localeCompare(b.buildingNum, undefined, { numeric: true });
     });
 

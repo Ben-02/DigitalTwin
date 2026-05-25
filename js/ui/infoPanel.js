@@ -43,7 +43,10 @@ export function showBuildingInfoWithDirections(entity, lat, lon, buildingName) {
     pendingBuildingInfo = { type: 'metadata', args: [entity, lat, lon, buildingName] };
 
     const infoContent = document.getElementById('info-content');
-    infoContent.innerHTML = buildBuildingInfoHTML(entity) + `
+    const infoHtml = entity ? buildBuildingInfoHTML(entity) : `
+        <h3>${escapeHtml(buildingName)}</h3>
+    `;
+    infoContent.innerHTML = infoHtml + `
         <div style="margin-top:12px;">
             <button onclick="window.showDirections()"
                 style="width:100%; padding:12px; background:#3498db; color:white; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer;">
