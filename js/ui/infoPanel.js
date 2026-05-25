@@ -44,7 +44,8 @@ export function showBuildingInfoWithDirections(entity, lat, lon, buildingName, f
 
     const infoContent = document.getElementById('info-content');
     const infoHtml = entity ? buildBuildingInfoHTML(entity, fallbackNum, fallbackName) : `
-        <h3>${escapeHtml(buildingName)}</h3>
+        <h3>Building ${escapeHtml(fallbackNum || 'N/A')}</h3>
+        <p><strong>Name:</strong> ${escapeHtml(fallbackName || 'Unknown Building')}</p>
     `;
     infoContent.innerHTML = infoHtml + `
         <div style="margin-top:12px;">
