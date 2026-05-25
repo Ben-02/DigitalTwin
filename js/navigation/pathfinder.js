@@ -104,6 +104,10 @@ function removeRoutePins() {
     if (endPin) { viewer.entities.remove(endPin); endPin = null; }
 }
 
+export function removeStartPin() {
+    if (startPin) { viewer.entities.remove(startPin); startPin = null; scheduleRender(); }
+}
+
 function zoomToShowRoute(startLat, startLon, targetLat, targetLon) {
     const positions = [
         Cesium.Cartesian3.fromDegrees(startLon, startLat, 0),

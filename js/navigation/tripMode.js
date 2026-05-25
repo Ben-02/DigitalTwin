@@ -1,7 +1,7 @@
 import { viewer, scheduleRender } from '../map/viewer.js';
 import { updatePositionDuringNavigation, userLocation } from '../map/userLocation.js';
 import { osmBuildings } from '../map/buildings.js';
-import { updateRouteDisplay, clearRoute, setNavigationActive } from './pathfinder.js';
+import { updateRouteDisplay, clearRoute, setNavigationActive, removeStartPin } from './pathfinder.js';
 import { calculateDistance } from '../utils/helper.js';
 import { CONFIG } from '../config.js';
 
@@ -66,22 +66,36 @@ export function startTrip(path, destName, destLat, destLon) {
     const helpBtn = document.getElementById('help-btn');
     if (helpBtn) helpBtn.style.display = 'none';
 
+    removeStartPin();
     showNavigationUI();
     updateInstructionBanner('Starting navigation...', '', '#2c3e50');
 
     addInteractionListeners();
 
-    if (navigator.geolocation) {
-        watchId = navigator.geolocation.watchPosition(
-            onPositionUpdate,
-            onPositionError,
-            { enableHighAccuracy: true, timeout: 5000, maximumAge: 5000 }
-        );
-    }
+    const startGPSWatch = () => {
+        if (navigator.geolocation) {
+            watchId = navigator.geolocation.watchPosition(
+                onPositionUpdate,
+                onPositionError,
+                { enableHighAccuracy: true, timeout: 5000, maximumAge: 5000 }
+            );
+        }
+    };
 
     if (userLocation) {
-        zoomToUser(userLocation.latitude, userLocation.longitude, 0);
+        const target = Cesium.Cartesian3.fromDegrees(userLocation.longitude, userLocation.latitude, 0);
+        viewer.camera.flyToBoundingSphere(
+            new Cesium.BoundingSphere(target, 0),
+            {
+                offset: new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(-50), 150),
+                duration: 1.5,
+                complete: startGPSWatch,
+                cancel: startGPSWatch
+            }
+        );
         updateNavigationUI(userLocation.latitude, userLocation.longitude);
+    } else {
+        startGPSWatch();
     }
 }
 
@@ -235,15 +249,18 @@ function recenterCamera() {
     hideRecenterButton();
     const lat = userLocation ? userLocation.latitude : (previousLat || -32.0063);
     const lon = userLocation ? userLocation.longitude : (previousLon || 115.8945);
-    viewer.camera.flyTo({
-        destination: Cesium.Cartesian3.fromDegrees(lon, lat, 150),
-        orientation: {
-            heading: Cesium.Math.toRadians(currentHeading),
-            pitch: Cesium.Math.toRadians(-50),
-            roll: 0
-        },
-        duration: 1.0
-    });
+    const target = Cesium.Cartesian3.fromDegrees(lon, lat, 0);
+    viewer.camera.flyToBoundingSphere(
+        new Cesium.BoundingSphere(target, 0),
+        {
+            offset: new Cesium.HeadingPitchRange(
+                Cesium.Math.toRadians(currentHeading),
+                Cesium.Math.toRadians(-50),
+                150
+            ),
+            duration: 1.0
+        }
+    );
     if (osmBuildings) {
         osmBuildings.maximumScreenSpaceError = 16;
         scheduleRender();
@@ -326,14 +343,13 @@ function onPositionError(error) {
 }
 
 function zoomToUser(lat, lon, heading) {
-    viewer.camera.setView({
-        destination: Cesium.Cartesian3.fromDegrees(lon, lat, 150),
-        orientation: {
-            heading: Cesium.Math.toRadians(heading),
-            pitch: Cesium.Math.toRadians(-50),
-            roll: 0
-        }
-    });
+    const target = Cesium.Cartesian3.fromDegrees(lon, lat, 0);
+    viewer.camera.lookAt(target, new Cesium.HeadingPitchRange(
+        Cesium.Math.toRadians(heading),
+        Cesium.Math.toRadians(-50),
+        150
+    ));
+    viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
     scheduleRender();
 }
 
